@@ -11,16 +11,19 @@ export interface UserModel {
   email?: string;
 }
 
+
 export interface AuthStateModel {
   user: UserModel | null;
   isLoading: boolean;
   error: string | null;
 }
 
+
 export interface LoginCredentialsModel {
   username: string;
   password: string;
 }
+
 
 export interface RegisterCredentialsModel extends LoginCredentialsModel {
   email: string;

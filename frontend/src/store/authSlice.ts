@@ -7,11 +7,10 @@ const initialState: AuthStateModel = {
   error: null,
 };
 
-// Асинхронные actions для аутентификации
 export const login = createAsyncThunk(
-  'auth/login',
+  'auth/users/login',
   async (credentials: LoginCredentialsModel) => {
-    const response = await fetch('/api/login', {
+    const response = await fetch('/api/users/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -28,9 +27,9 @@ export const login = createAsyncThunk(
 );
 
 export const register = createAsyncThunk(
-  'auth/register',
+  'auth/users/register',
   async (credentials: RegisterCredentialsModel) => {
-    const response = await fetch('/api/register', {
+    const response = await fetch('/api/users/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
