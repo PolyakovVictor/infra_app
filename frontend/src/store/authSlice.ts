@@ -7,29 +7,33 @@ const initialState: AuthStateModel = {
   error: null,
 };
 
+const API_URL = import.meta.env.VITE_API_URL; // Для Vite
+// const API_URL = process.env.REACT_APP_API_URL; // Для CRA
+
 export const login = createAsyncThunk(
-  'auth/users/login',
+  'login',
   async (credentials: LoginCredentialsModel) => {
-    const response = await fetch('/api/users/login', {
+    const response = await fetch(`/api/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
     });
-    
+
     if (!response.ok) {
       throw new Error('Login failed');
     }
-    
+
     return await response.json();
   }
 );
 
+
 export const register = createAsyncThunk(
-  'auth/users/register',
+  'register',
   async (credentials: RegisterCredentialsModel) => {
-    const response = await fetch('/api/users/register', {
+    const response = await fetch(`${API_URL}/api/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
