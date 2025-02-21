@@ -1,14 +1,23 @@
-# Используем Node.js для сборки фронта
-FROM node:18 AS build
+# Базовый образ Node.js
+FROM node:18-alpine
+
+# Рабочая директория
 WORKDIR /app
+
+# Копируем package.json и устанавливаем зависимости
 COPY package*.json ./
 RUN npm install
+
+# Копируем весь код
 COPY . .
+
+# Собираем проект
 RUN npm run build
 
-# Используем Nginx для раздачи фронта
-FROM nginx:latest
-RUN rm -rf /usr/share/nginx/html/*
-COPY --from=build /app/dist /usr/share/nginx/html
+# Устанавливаем сервер для раздачи статики
+RUN npm install -g serve
 
-COPY ./nginx.conf /etc/nginx/conf.d/default.conf
+# Запускаем приложение
+CMD ["serve", "-s", "dist", "-l", "80"]
+
+EXPOSE 80

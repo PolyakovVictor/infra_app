@@ -1,11 +1,13 @@
-import { configureStore } from "@reduxjs/toolkit";
-import counterReducer from "./counterSlice";
-import authReducer from './authSlice';
+import { configureStore } from '@reduxjs/toolkit';
+import authSlice from '../features/authSlice';
+import postsSlice from '../features/postsSlice';
+import notificationsSlice from '../features/notificationsSlice';
 
 export const store = configureStore({
   reducer: {
-    counter: counterReducer,
-    auth: authReducer,
+    auth: authSlice,
+    posts: postsSlice,
+    notifications: notificationsSlice,
   },
 });
 
