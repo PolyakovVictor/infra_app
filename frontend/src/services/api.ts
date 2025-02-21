@@ -5,7 +5,7 @@ const api = axios.create({
 });
 
 export const loginUser = (username: string, password: string) =>
-  api.post('/login/', { username, password });
+  api.post('/auth/login/', { username, password });
 
 export const fetchPosts = () => api.get('/posts/');
 

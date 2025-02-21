@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  consumer:
+    build: ./backend
+    container_name: kafka_consumer
+    restart: always
+    depends_on:
+      - kafka
+      - redis
+    environment:
+      KAFKA_BROKER_URL: kafka:9092
+    volumes:
+      - ./backend:/backend
+    command: >
+      sh -c "python consumer.py"
   db:
     image: postgres:15
     container_name: postgres_db
