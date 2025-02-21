@@ -1,13 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface Notification {
+export interface NotificationModel {
   id: number;
   message: string;
   createdAt: string;
 }
 
 interface NotificationsState {
-  notifications: Notification[];
+  notifications: NotificationModel[];
 }
 
 const initialState: NotificationsState = {
@@ -18,7 +18,7 @@ const notificationsSlice = createSlice({
   name: 'notifications',
   initialState,
   reducers: {
-    addNotification: (state, action: PayloadAction<Notification>) => {
+    addNotification: (state, action: PayloadAction<NotificationModel>) => {
       state.notifications.unshift(action.payload);
     },
   },
