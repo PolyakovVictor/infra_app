@@ -11,7 +11,7 @@ const Login = () => {
   const handleLogin = async () => {
     try {
       const response = await loginUser(username, password);
-      dispatch(login({ user: username, token: response.data.token }));
+      dispatch(login({ user: username, token: response.token }));
     } catch (error) {
       console.error('Login failed', error);
     }

@@ -1,23 +1,13 @@
-# Базовый образ Node.js
-FROM node:18-alpine
-
-# Рабочая директория
+# Этап сборки
+FROM node:18-alpine AS build
 WORKDIR /app
-
-# Копируем package.json и устанавливаем зависимости
 COPY package*.json ./
 RUN npm install
-
-# Копируем весь код
 COPY . .
-
-# Собираем проект
 RUN npm run build
 
-# Устанавливаем сервер для раздачи статики
-RUN npm install -g serve
-
-# Запускаем приложение
-CMD ["serve", "-s", "dist", "-l", "80"]
-
+# Этап запуска с Nginx
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY ./nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
