@@ -68,3 +68,6 @@ dist-ssr
 staticfiles
 *.pyc
 .env
+
+
+__pycache__
