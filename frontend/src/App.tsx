@@ -1,16 +1,39 @@
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from './store/store';
-import { logout } from './features/authSlice';
+import { login, logout } from './features/authSlice';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import { RootState } from './store/store';
+import { fetchPosts } from './services/api';
 
 function App() {
-  const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch();
+  const { accessToken, refreshToken } = useSelector((state: RootState) => state.auth);
+
+  useEffect(() => {
+    const storedAccessToken = localStorage.getItem('accessToken');
+    const storedRefreshToken = localStorage.getItem('refreshToken');
+
+    const validateToken = async () => {
+      if (storedAccessToken && storedRefreshToken) {
+        try {
+          await fetchPosts(storedAccessToken);
+          dispatch(login({ user: 'user', accessToken: storedAccessToken, refreshToken: storedRefreshToken }));
+        } catch (error) {
+          console.error('Invalid token, logging out:', error);
+          dispatch(logout());
+        }
+      }
+    };
+
+    validateToken();
+  }, [dispatch]);
+
+  const isAuthenticated = !!accessToken && !!refreshToken;
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {user && (
+      {isAuthenticated && (
         <header className="bg-blue-600 text-white p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">RealBuzz</h1>
           <button
@@ -21,7 +44,7 @@ function App() {
           </button>
         </header>
       )}
-      {user ? <Home /> : <Login />}
+      {isAuthenticated ? <Home /> : <Login />}
     </div>
   );
 }

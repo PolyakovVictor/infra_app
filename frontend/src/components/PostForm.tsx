@@ -1,17 +1,16 @@
 import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../store/store';
+import { useDispatch } from 'react-redux';
 import { addPost } from '../features/postsSlice';
 import { createPost } from '../services/api';
 
 const PostForm = () => {
   const [content, setContent] = useState('');
   const dispatch = useDispatch();
-  const token = useSelector((state: RootState) => state.auth.token);
+  const accessToken = localStorage.getItem('accessToken');
 
   const handleSubmit = async () => {
-    if (!token) return;
-    const response = await createPost(content, token);
+    if (!accessToken) return;
+    const response = await createPost(content, accessToken);
     dispatch(addPost(response.data));
     setContent('');
   };

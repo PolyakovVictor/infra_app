@@ -28,3 +28,9 @@ export interface LoginCredentialsModel {
 export interface RegisterCredentialsModel extends LoginCredentialsModel {
   email: string;
 }
+
+
+export interface responseModel {
+  access: string;
+  refresh: string;
+}

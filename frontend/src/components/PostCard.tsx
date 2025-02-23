@@ -1,6 +1,4 @@
 import { Post } from '../features/postsSlice';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store/store';
 import { useState } from 'react';
 import axios from 'axios';
 
@@ -9,14 +7,14 @@ interface PostCardProps {
 }
 
 const PostCard = ({ post }: PostCardProps) => {
-  const token = useSelector((state: RootState) => state.auth.token);
+  const accessToken = localStorage.getItem('accessToken');
   const [followed, setFollowed] = useState(false);
 
   const handleFollow = async () => {
     await axios.post(
       'http://localhost:8000/api/follow/',
       { user_id: post.user },
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     setFollowed(true);
   };

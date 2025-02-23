@@ -5,22 +5,24 @@ const api = axios.create({
   withCredentials: true
 });
 
-// Логин
+
 export const loginUser = async (username: string, password: string) => {
   try {
-    const response = await api.post('/auth/login/', { username, password });
-    return response.data;
+    const response = await api.post('/token/', { username, password });
+    const { access, refresh } = response.data;
+    localStorage.setItem('accessToken', access);
+    localStorage.setItem('refreshToken', refresh);
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     throw error;
   }
 };
 
-// Получение постов (добавь токен, если требуется)
-export const fetchPosts = async (token?: string) => {
+export const fetchPosts = async (accessToken: string) => {
   try {
     const response = await api.get('/posts/', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     return response.data;
   } catch (error) {
@@ -29,11 +31,11 @@ export const fetchPosts = async (token?: string) => {
   }
 };
 
-// Создание поста
-export const createPost = async (content: string, token: string) => {
+
+export const createPost = async (content: string, accessToken: string) => {
   try {
     const response = await api.post('/posts/', { content }, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     return response.data;
   } catch (error) {
@@ -42,11 +44,11 @@ export const createPost = async (content: string, token: string) => {
   }
 };
 
-// Уведомления
-export const fetchNotifications = async (token: string) => {
+
+export const fetchNotifications = async (accessToken: string) => {
   try {
     const response = await api.get('/notifications/', {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     return response.data;
   } catch (error) {
@@ -55,9 +57,9 @@ export const fetchNotifications = async (token: string) => {
   }
 };
 
-// WebSocket (перенаправь через Nginx)
-export const connectWebSocket = (token: string, onMessage: (data: any) => void) => {
-  const ws = new WebSocket(`ws://localhost/api/ws/notifications/?token=${token}`); // Изменил порт
+
+export const connectWebSocket = (accessToken: string, onMessage: (data: any) => void) => {
+  const ws = new WebSocket(`ws://localhost/api/ws/notifications/?token=${accessToken}`);
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     onMessage(data);

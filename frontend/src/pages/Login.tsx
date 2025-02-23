@@ -6,13 +6,17 @@ import { loginUser } from '../services/api';
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
 
   const handleLogin = async () => {
     try {
+      setError(null);
       const response = await loginUser(username, password);
-      dispatch(login({ user: username, token: response.token }));
-    } catch (error) {
+      const { access, refresh } = response.data;
+      dispatch(login({ user: username, accessToken: access, refreshToken: refresh }));
+    } catch (error: any) {
+      setError('Login failed. Please check your credentials.');
       console.error('Login failed', error);
     }
   };
@@ -21,6 +25,7 @@ const Login = () => {
     <div className="flex items-center justify-center min-h-screen">
       <div className="p-6 bg-white rounded shadow-md">
         <h2 className="text-2xl font-bold mb-4">Login to RealBuzz</h2>
+        {error && <p className="text-red-500 mb-4">{error}</p>}
         <input
           type="text"
           value={username}
