@@ -4,7 +4,6 @@ import { login, logout } from './features/authSlice';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import { RootState } from './store/store';
-import { fetchPosts } from './services/api';
 
 function App() {
   const dispatch = useDispatch();
@@ -17,7 +16,6 @@ function App() {
     const validateToken = async () => {
       if (storedAccessToken && storedRefreshToken) {
         try {
-          await fetchPosts(storedAccessToken);
           dispatch(login({ user: 'user', accessToken: storedAccessToken, refreshToken: storedRefreshToken }));
         } catch (error) {
           console.error('Invalid token, logging out:', error);

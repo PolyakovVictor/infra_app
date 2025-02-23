@@ -24,7 +24,8 @@ export const fetchPosts = async (accessToken: string) => {
     const response = await api.get('/posts/', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    return response.data;
+    console.log('TEST POST RESPONSE: ', response)
+    return response;
   } catch (error) {
     console.error('Fetch posts error:', error);
     throw error;

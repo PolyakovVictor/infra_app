@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import { setPosts } from '../features/postsSlice';
-import { addNotification } from '../features/notificationsSlice';
-import { fetchPosts, fetchNotifications } from '../services/api';
+// import { addNotification } from '../features/notificationsSlice';
+import { fetchPosts } from '../services/api';
 import PostForm from '../components/PostForm';
 import PostCard from '../components/PostCard';
 import Notification from '../components/Notification';
@@ -26,10 +26,8 @@ const Home = () => {
 
       try {
         const postsResponse = await fetchPosts(accessToken);
+        console.log('Posts response:', postsResponse.data);
         dispatch(setPosts(postsResponse.data));
-
-        const notifResponse = await fetchNotifications(accessToken);
-        notifResponse.data.forEach((notif: any) => dispatch(addNotification(notif)));
       } catch (err) {
         setError('Failed to load data');
         console.error(err);
@@ -50,15 +48,19 @@ const Home = () => {
         <h1 className="text-3xl font-bold mb-6">RealBuzz</h1>
         <PostForm />
         <div className="space-y-4 mt-6">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
+          {posts && posts.length > 0 ? (
+            posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))
+          ) : (
+            <p className="text-gray-500">No posts yet.</p>
+          )}
         </div>
       </div>
       <div className="col-span-1">
         <h2 className="text-xl font-semibold mb-4">Notifications</h2>
         <div className="max-h-[calc(100vh-200px)] overflow-y-auto space-y-2">
-          {notifications.length > 0 ? (
+          {notifications && notifications.length > 0 ? (
             notifications.map((notif) => (
               <Notification key={notif.id} notification={notif} />
             ))
