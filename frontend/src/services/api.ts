@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { PostCardProps } from '../interfaces/features';
+import { Post } from '../features/postsSlice';
 
 const api = axios.create({
   baseURL: 'http://localhost/api',
@@ -24,8 +26,7 @@ export const fetchPosts = async (accessToken: string) => {
     const response = await api.get('/posts/', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    console.log('TEST POST RESPONSE: ', response)
-    return response;
+    return response.data;
   } catch (error) {
     console.error('Fetch posts error:', error);
     throw error;
@@ -68,4 +69,18 @@ export const connectWebSocket = (accessToken: string, onMessage: (data: any) => 
   ws.onclose = () => console.log('WebSocket closed');
   ws.onerror = (error) => console.error('WebSocket error:', error);
   return ws;
+};
+
+
+export const followToUser = async (accessToken: string, post: Post) => {
+  try {
+    const response = await api.post('/follow/', 
+      {user_id: post.user},
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    return response.data
+  } catch (error) {
+    console.log('Following error:', error)
+    throw error;
+  }
 };

@@ -33,7 +33,7 @@ function App() {
     <div className="min-h-screen bg-gray-100">
       {isAuthenticated && (
         <header className="bg-blue-600 text-white p-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">RealBuzz</h1>
+          <h1 className="text-2xl font-bold">Reyo</h1>
           <button
             onClick={() => dispatch(logout())}
             className="bg-red-500 px-4 py-2 rounded hover:bg-red-600 transition"

@@ -39,7 +39,7 @@ class FollowView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        following_id = request.data.get('user_id')
-        following = User.objects.get(id=following_id)
+        username = request.data.get('user_id')
+        following = User.objects.get(username=username)
         Follow.objects.get_or_create(follower=request.user, following=following)
         return Response({'status': 'followed'}, status=201)

@@ -1,22 +1,40 @@
 import { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../store/store'; // Убедитесь, что путь правильный
 import { addPost } from '../features/postsSlice';
 import { createPost } from '../services/api';
 
 const PostForm = () => {
   const [content, setContent] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
-  const accessToken = localStorage.getItem('accessToken');
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
 
   const handleSubmit = async () => {
-    if (!accessToken) return;
-    const response = await createPost(content, accessToken);
-    dispatch(addPost(response.data));
-    setContent('');
+    if (!accessToken) {
+      setError('You must be logged in to post.');
+      return;
+    }
+
+    if (!content.trim()) {
+      setError('Post content cannot be empty.');
+      return;
+    }
+
+    try {
+      setError(null);
+      const response = await createPost(content, accessToken);
+      dispatch(addPost(response));
+      setContent('');
+    } catch (err) {
+      setError('Failed to create post. Please try again.');
+      console.error('Post creation error:', err);
+    }
   };
 
   return (
     <div className="bg-white p-4 rounded shadow">
+      {error && <p className="text-red-500 mb-2">{error}</p>}
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}

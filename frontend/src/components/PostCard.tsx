@@ -1,24 +1,17 @@
-import { Post } from '../features/postsSlice';
 import { useState } from 'react';
-import axios from 'axios';
+import { PostCardProps } from '../interfaces/features'
+import { followToUser } from '../services/api';
 
-interface PostCardProps {
-  post: Post;
-}
 
 const PostCard = ({ post }: PostCardProps) => {
   const accessToken = localStorage.getItem('accessToken');
   const [followed, setFollowed] = useState(false);
 
   const handleFollow = async () => {
-    await axios.post(
-      'http://localhost:8000/api/follow/',
-      { user_id: post.user },
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
+    if (!accessToken) return;
+    await followToUser(accessToken, post);
     setFollowed(true);
   };
-  console.log('TEST POST : ', post)
 
   return (
     <div className="bg-white p-4 rounded-lg shadow hover:shadow-md transition">

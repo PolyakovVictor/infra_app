@@ -24,7 +24,7 @@ const Login = () => {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="p-6 bg-white rounded shadow-md">
-        <h2 className="text-2xl font-bold mb-4">Login to RealBuzz</h2>
+        <h2 className="text-2xl font-bold mb-4">Login to Reyo</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
         <input
           type="text"
