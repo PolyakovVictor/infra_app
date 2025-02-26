@@ -19,9 +19,23 @@ class PostListView(APIView):
     def post(self, request):
         serializer = PostSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(user=request.user)
+            post = serializer.save(user=request.user)
             producer = KafkaProducer(bootstrap_servers='kafka:9092')
+
+            # Отправляем пост в топик new_posts
             producer.send('new_posts', json.dumps(serializer.data).encode('utf-8'))
+
+            # Отправляем уведомления подписчикам
+            followers = Follow.objects.filter(following=request.user).values_list('follower', flat=True)
+            print('### KAFKA SHOULD SEND THE NOTIF', followers)
+            for follower_id in followers:
+                notification_data = {
+                    'user_id': follower_id,
+                    'message': f"{request.user.username} опубликовал новый пост!",
+                    'post_id': post.id,
+                }
+                producer.send('notifications', json.dumps(notification_data).encode('utf-8'))
+
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
 
@@ -41,5 +55,18 @@ class FollowView(APIView):
     def post(self, request):
         username = request.data.get('user_id')
         following = User.objects.get(username=username)
-        Follow.objects.get_or_create(follower=request.user, following=following)
+        follow, created = Follow.objects.get_or_create(follower=request.user, following=following)
+        if created:
+            # Создаем уведомление
+            print('### TEST CREATE FollowView post: ', follow, following)
+            Notification.objects.create(
+                user=following,
+                message=f"{request.user.username} подписался на вас!"
+            )
+            # Отправляем в Kafka
+            producer = KafkaProducer(bootstrap_servers='kafka:9092')
+            producer.send('notifications', json.dumps({
+                'user_id': following.id,
+                'message': f"{request.user.username} подписался на вас!"
+            }).encode('utf-8'))
         return Response({'status': 'followed'}, status=201)

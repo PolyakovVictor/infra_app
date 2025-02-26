@@ -74,7 +74,7 @@ export const connectWebSocket = (accessToken: string, onMessage: (data: any) => 
 
 export const followToUser = async (accessToken: string, post: Post) => {
   try {
-    const response = await api.post('/follow/', 
+    const response = await api.post('/follow/',
       {user_id: post.user},
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );

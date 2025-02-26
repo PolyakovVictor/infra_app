@@ -1,25 +1,51 @@
-import { NotificationModel } from '../features/notificationsSlice';
-import { motion } from 'framer-motion';
+// src/components/Notifications.tsx
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../store/store';
+import { setNotifications, addNotification } from '../features/notificationsSlice';
 
-interface NotificationProps {
-  notification: NotificationModel;
-}
+const Notifications: React.FC = () => {
+  const dispatch = useDispatch();
+  const notifications = useSelector((state: RootState) => state.notifications.notifications);
 
-const Notification = ({ notification }: NotificationProps) => {
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const response = await fetch('http://localhost:8000/api/notifications/', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      const data = await response.json();
+      dispatch(setNotifications(data));
+    };
+
+    useEffect(() => {
+      const ws = new WebSocket('ws://localhost:8000/ws/notifications/');
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        dispatch(addNotification({ id: Date.now(), message: data.message, created_at: new Date().toISOString() }));
+      };
+      return () => ws.close();
+    }, [dispatch]);
+
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, [dispatch]);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="bg-white p-3 rounded shadow mb-2 flex items-center"
-    >
-      <span className="text-blue-500 mr-2">🔔</span>
-      <p>{notification.message}</p>
-      <p className="text-gray-500 text-sm ml-auto">
-        {new Date(notification.createdAt).toLocaleTimeString()}
-      </p>
-    </motion.div>
+    <div className="fixed top-4 right-4 w-80 space-y-2">
+      {notifications.map((notification) => (
+        <div
+          key={notification.id}
+          className="p-4 bg-white shadow-lg rounded-lg border border-gray-200 animate-slide-in"
+        >
+          <p className="text-sm text-gray-800">{notification.message}</p>
+          <p className="text-xs text-gray-500">{notification.created_at}</p>
+          <button className="text-xs text-red-500 hover:text-red-700">Закрыть</button>
+        </div>
+      ))}
+    </div>
   );
 };
 
-export default Notification;
+export default Notifications;
