@@ -23,7 +23,7 @@ const PostForm = () => {
 
     try {
       setError(null);
-      const response = await createPost(content, accessToken);
+      const response = await createPost(content);
       dispatch(addPost(response));
       setContent('');
     } catch (err) {

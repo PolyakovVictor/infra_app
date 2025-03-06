@@ -25,7 +25,7 @@ const Home = () => {
       }
 
       try {
-        const postsResponse = await fetchPosts(accessToken);
+        const postsResponse = await fetchPosts();
         console.log('postsResponse : ', postsResponse)
         dispatch(setPosts(postsResponse));
       } catch (err) {

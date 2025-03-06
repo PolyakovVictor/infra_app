@@ -6,67 +6,123 @@ from .models import Follow, Post, Notification
 from .serializers import PostSerializer, NotificationSerializer
 from kafka import KafkaProducer
 import json
+import logging
+
+
+logger = logging.getLogger('core.views')
 
 
 class PostListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        posts = Post.objects.filter(user__in=request.user.following.values('following'))
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data)
+        logger.info(f"Получение списка постов для пользователя {request.user.username}")
+        try:
+            posts = Post.objects.filter(user__in=request.user.following.values('following'))
+            serializer = PostSerializer(posts, many=True)
+            logger.debug(f"Найдено {len(posts)} постов для сериализации")
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Ошибка при получении постов: {str(e)}", exc_info=True)
+            return Response({"error": "Не удалось получить посты"}, status=500)
 
     def post(self, request):
+        logger.info(f"Создание нового поста пользователем {request.user.username}")
         serializer = PostSerializer(data=request.data)
+
         if serializer.is_valid():
-            post = serializer.save(user=request.user)
-            producer = KafkaProducer(bootstrap_servers='kafka:9092')
+            try:
+                post = serializer.save(user=request.user)
+                logger.debug(f"Пост успешно сохранён: ID={post.id}")
 
-            # Отправляем пост в топик new_posts
-            producer.send('new_posts', json.dumps(serializer.data).encode('utf-8'))
+                # Инициализация Kafka Producer
+                producer = KafkaProducer(bootstrap_servers='kafka:9092')
+                logger.debug("Kafka Producer инициализирован")
 
-            # Отправляем уведомления подписчикам
-            followers = Follow.objects.filter(following=request.user).values_list('follower', flat=True)
-            print('### KAFKA SHOULD SEND THE NOTIF', followers)
-            for follower_id in followers:
-                notification_data = {
-                    'user_id': follower_id,
-                    'message': f"{request.user.username} опубликовал новый пост!",
-                    'post_id': post.id,
-                }
-                producer.send('notifications', json.dumps(notification_data).encode('utf-8'))
+                # Отправляем пост в топик new_posts
+                producer.send('new_posts', json.dumps(serializer.data).encode('utf-8'))
+                logger.info(f"Пост отправлен в топик 'new_posts': ID={post.id}")
 
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+                # Отправляем уведомления подписчикам
+                followers = Follow.objects.filter(following=request.user).values_list('follower', flat=True)
+                logger.debug(f"Найдено {len(followers)} подписчиков для уведомлений: {list(followers)}")
+
+                for follower_id in followers:
+                    notification_data = {
+                        'user_id': follower_id,
+                        'message': f"{request.user.username} опубликовал новый пост!",
+                        'post_id': post.id,
+                    }
+                    producer.send('notifications', json.dumps(notification_data).encode('utf-8'))
+                    logger.debug(f"Уведомление отправлено пользователю ID={follower_id}")
+
+                return Response(serializer.data, status=201)
+            except Exception as e:
+                logger.error(f"Ошибка при создании поста или отправке в Kafka: {str(e)}", exc_info=True)
+                return Response({"error": "Не удалось создать пост"}, status=500)
+        else:
+            logger.warning(f"Невалидные данные для поста: {serializer.errors}")
+            return Response(serializer.errors, status=400)
 
 
 class NotificationListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        notifications = Notification.objects.filter(user=request.user)
-        serializer = NotificationSerializer(notifications, many=True)
-        return Response(serializer.data)
+        logger.info(f"Retrieving notifications for user {request.user.username}")
+        try:
+            notifications = Notification.objects.filter(user=request.user)
+            logger.debug(f"Found {notifications.count()} notifications for user {request.user.username}")
+            serializer = NotificationSerializer(notifications, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Error retrieving notifications: {str(e)}", exc_info=True)
+            return Response({"error": "Failed to retrieve notifications"}, status=500)
 
 
 class FollowView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        logger.info(f"User {request.user.username} attempting to follow another user")
         username = request.data.get('user_id')
-        following = User.objects.get(username=username)
-        follow, created = Follow.objects.get_or_create(follower=request.user, following=following)
-        if created:
-            # Создаем уведомление
-            print('### TEST CREATE FollowView post: ', follow, following)
-            Notification.objects.create(
-                user=following,
-                message=f"{request.user.username} подписался на вас!"
-            )
-            # Отправляем в Kafka
-            producer = KafkaProducer(bootstrap_servers='kafka:9092')
-            producer.send('notifications', json.dumps({
-                'user_id': following.id,
-                'message': f"{request.user.username} подписался на вас!"
-            }).encode('utf-8'))
-        return Response({'status': 'followed'}, status=201)
+
+        try:
+            following = User.objects.get(username=username)
+            logger.debug(f"Found user to follow: {following.username}")
+        except User.DoesNotExist:
+            logger.warning(f"User with username {username} not found")
+            return Response({"error": "User not found"}, status=404)
+        except Exception as e:
+            logger.error(f"Error fetching user {username}: {str(e)}", exc_info=True)
+            return Response({"error": "Internal server error"}, status=500)
+
+        try:
+            follow, created = Follow.objects.get_or_create(follower=request.user, following=following)
+            if created:
+                logger.info(f"New follow relationship created: {request.user.username} -> {following.username}")
+
+                # Create notification
+                Notification.objects.create(
+                    user=following,
+                    message=f"{request.user.username} has followed you!"
+                )
+                logger.debug(f"Notification created for user {following.username}")
+
+                # Send to Kafka
+                producer = KafkaProducer(bootstrap_servers='kafka:9092')
+                logger.debug("Kafka Producer initialized")
+                notification_data = {
+                    'user_id': following.id,
+                    'message': f"{request.user.username} has followed you!"
+                }
+                producer.send('notifications', json.dumps(notification_data).encode('utf-8'))
+                logger.info(f"Notification sent to Kafka for user ID={following.id}")
+            else:
+                logger.debug(f"Follow relationship already exists: {request.user.username} -> {following.username}")
+
+            return Response({'status': 'followed'}, status=201)
+
+        except Exception as e:
+            logger.error(f"Error during follow operation or Kafka send: {str(e)}", exc_info=True)
+            return Response({"error": "Failed to follow user"}, status=500)

@@ -4,12 +4,10 @@ import { followToUser } from '../services/api';
 
 
 const PostCard = ({ post }: PostCardProps) => {
-  const accessToken = localStorage.getItem('accessToken');
   const [followed, setFollowed] = useState(false);
 
   const handleFollow = async () => {
-    if (!accessToken) return;
-    await followToUser(accessToken, post);
+    await followToUser(post);
     setFollowed(true);
   };
 

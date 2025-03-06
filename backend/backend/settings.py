@@ -201,3 +201,42 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+logger_DEBUG = os.getenv('DEBUG', 'False') == 'True'
+# settings.py
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',  # Установи DEBUG, чтобы видеть все сообщения
+            'class': 'logging.StreamHandler',  # Вывод в stdout, который Docker собирает
+            'formatter': 'verbose',
+        },
+        'file': {  # Опционально, для сохранения в файл
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': '/app/debug.log',  # Укажи путь внутри контейнера
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'myapp': {  # Убедись, что имя совпадает с logger в коде
+            'handlers': ['console', 'file'],  # Вывод в консоль и файл
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django': {  # Для стандартных логов Django
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
