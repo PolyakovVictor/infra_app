@@ -13,7 +13,7 @@ const Login = () => {
     try {
       setError(null);
       const response = await loginUser(username, password);
-      const { access, refresh } = response.data;
+      const { access, refresh } = response;
       dispatch(login({ user: username, accessToken: access, refreshToken: refresh }));
     } catch (error: any) {
       setError('Login failed. Please check your credentials.');
