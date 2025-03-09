@@ -1,36 +1,9 @@
-// src/components/Notifications.tsx
-import React, { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React from 'react';
+import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
-import { setNotifications, addNotification } from '../features/notificationsSlice';
 
 const Notifications: React.FC = () => {
-  const dispatch = useDispatch();
   const notifications = useSelector((state: RootState) => state.notifications.notifications);
-
-
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      const response = await fetch('http://localhost:8000/api/notifications/', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await response.json();
-      dispatch(setNotifications(data));
-    };
-
-    useEffect(() => {
-      const ws = new WebSocket('ws://localhost:8000/ws/notifications/');
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        dispatch(addNotification({ id: Date.now(), message: data.message, created_at: new Date().toISOString() }));
-      };
-      return () => ws.close();
-    }, [dispatch]);
-
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
-  }, [dispatch]);
 
   return (
     <div className="fixed top-4 right-4 w-80 space-y-2">
@@ -41,7 +14,7 @@ const Notifications: React.FC = () => {
         >
           <p className="text-sm text-gray-800">{notification.message}</p>
           <p className="text-xs text-gray-500">{notification.created_at}</p>
-          <button className="text-xs text-red-500 hover:text-red-700">Закрыть</button>
+          <button className="text-xs text-red-700 hover:text-red-900">Close</button>
         </div>
       ))}
     </div>

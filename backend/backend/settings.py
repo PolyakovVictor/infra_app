@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'core',
     'corsheaders',
+    'channels'
 ]
 
 REST_FRAMEWORK = {
@@ -73,7 +74,7 @@ SIMPLE_JWT = {
 }
 
 
-ASGI_APPLICATION = 'realbuzz.asgi.application'
+ASGI_APPLICATION = 'backend.asgi.application'
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -203,7 +204,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 logger_DEBUG = os.getenv('DEBUG', 'False') == 'True'
-# settings.py
+
 
 LOGGING = {
     'version': 1,
@@ -216,24 +217,24 @@ LOGGING = {
     },
     'handlers': {
         'console': {
-            'level': 'DEBUG',  # Установи DEBUG, чтобы видеть все сообщения
-            'class': 'logging.StreamHandler',  # Вывод в stdout, который Docker собирает
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {  # Опционально, для сохранения в файл
+        'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': '/app/debug.log',  # Укажи путь внутри контейнера
+            'filename': '/app/debug.log',
             'formatter': 'verbose',
         },
     },
     'loggers': {
-        'myapp': {  # Убедись, что имя совпадает с logger в коде
-            'handlers': ['console', 'file'],  # Вывод в консоль и файл
+        'myapp': {
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': False,
         },
-        'django': {  # Для стандартных логов Django
+        'django': {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,

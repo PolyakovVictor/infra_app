@@ -1,17 +1,17 @@
+// src/pages/Home.tsx
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import { setPosts } from '../features/postsSlice';
-// import { addNotification } from '../features/notificationsSlice';
-import { fetchPosts } from '../services/api';
+import { addNotification } from '../features/notificationsSlice';
+import { fetchPosts, connectWebSocket } from '../services/api';
 import PostForm from '../components/PostForm';
 import PostCard from '../components/PostCard';
-import Notification from '../components/Notification';
+import Notifications from '../components/Notification';
 
 const Home = () => {
   const dispatch = useDispatch();
   const posts = useSelector((state: RootState) => state.posts.posts);
-  const notifications = useSelector((state: RootState) => state.notifications.notifications);
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +26,7 @@ const Home = () => {
 
       try {
         const postsResponse = await fetchPosts();
-        console.log('postsResponse : ', postsResponse)
+        console.log('postsResponse : ', postsResponse);
         dispatch(setPosts(postsResponse));
       } catch (err) {
         setError('Failed to load data');
@@ -37,11 +37,25 @@ const Home = () => {
     };
 
     loadData();
+
+
+    const ws = connectWebSocket((data) => {
+      dispatch(addNotification({
+        id: Date.now(),
+        message: data.message,
+        created_at: new Date().toISOString(),
+      }));
+    });
+
+
+    return () => {
+      ws.close();
+    };
   }, [dispatch, accessToken]);
 
   useEffect(() => {
-    console.log('USEEFFECT test : ', posts)
-  }, [posts])
+    console.log('USEEFFECT test : ', posts);
+  }, [posts]);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
@@ -63,15 +77,7 @@ const Home = () => {
       </div>
       <div className="col-span-1">
         <h2 className="text-xl font-semibold mb-4">Notifications</h2>
-        <div className="max-h-[calc(100vh-200px)] overflow-y-auto space-y-2">
-          {notifications && notifications.length > 0 ? (
-            notifications.map((notif) => (
-              <Notification key={notif.id} notification={notif} />
-            ))
-          ) : (
-            <p className="text-gray-500">No notifications yet.</p>
-          )}
-        </div>
+        <Notifications />
       </div>
     </div>
   );

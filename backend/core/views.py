@@ -16,52 +16,52 @@ class PostListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        logger.info(f"Получение списка постов для пользователя {request.user.username}")
+        logger.info(f"Retrieving list of posts for user {request.user.username}")
         try:
             posts = Post.objects.filter(user__in=request.user.following.values('following'))
             serializer = PostSerializer(posts, many=True)
-            logger.debug(f"Найдено {len(posts)} постов для сериализации")
+            logger.debug(f"Found {len(posts)} posts for serialization")
             return Response(serializer.data)
         except Exception as e:
-            logger.error(f"Ошибка при получении постов: {str(e)}", exc_info=True)
-            return Response({"error": "Не удалось получить посты"}, status=500)
+            logger.error(f"Error retrieving posts: {str(e)}", exc_info=True)
+            return Response({"error": "Failed to retrieve posts"}, status=500)
 
     def post(self, request):
-        logger.info(f"Создание нового поста пользователем {request.user.username}")
+        logger.info(f"Creating a new post by user {request.user.username}")
         serializer = PostSerializer(data=request.data)
 
         if serializer.is_valid():
             try:
                 post = serializer.save(user=request.user)
-                logger.debug(f"Пост успешно сохранён: ID={post.id}")
+                logger.debug(f"Post successfully saved: ID={post.id}")
 
-                # Инициализация Kafka Producer
+                # Initialize Kafka Producer
                 producer = KafkaProducer(bootstrap_servers='kafka:9092')
-                logger.debug("Kafka Producer инициализирован")
+                logger.debug("Kafka Producer initialized")
 
-                # Отправляем пост в топик new_posts
+                # Send post to new_posts topic
                 producer.send('new_posts', json.dumps(serializer.data).encode('utf-8'))
-                logger.info(f"Пост отправлен в топик 'new_posts': ID={post.id}")
+                logger.info(f"Post sent to 'new_posts' topic: ID={post.id}")
 
-                # Отправляем уведомления подписчикам
+                # Send notifications to followers
                 followers = Follow.objects.filter(following=request.user).values_list('follower', flat=True)
-                logger.debug(f"Найдено {len(followers)} подписчиков для уведомлений: {list(followers)}")
+                logger.debug(f"Found {len(followers)} followers for notifications: {list(followers)}")
 
                 for follower_id in followers:
                     notification_data = {
                         'user_id': follower_id,
-                        'message': f"{request.user.username} опубликовал новый пост!",
+                        'message': f"{request.user.username} published a new post!",
                         'post_id': post.id,
                     }
                     producer.send('notifications', json.dumps(notification_data).encode('utf-8'))
-                    logger.debug(f"Уведомление отправлено пользователю ID={follower_id}")
+                    logger.debug(f"Notification sent to user ID={follower_id}")
 
                 return Response(serializer.data, status=201)
             except Exception as e:
-                logger.error(f"Ошибка при создании поста или отправке в Kafka: {str(e)}", exc_info=True)
-                return Response({"error": "Не удалось создать пост"}, status=500)
+                logger.error(f"Error creating post or sending to Kafka: {str(e)}", exc_info=True)
+                return Response({"error": "Failed to create post"}, status=500)
         else:
-            logger.warning(f"Невалидные данные для поста: {serializer.errors}")
+            logger.warning(f"Invalid data for post: {serializer.errors}")
             return Response(serializer.errors, status=400)
 
 

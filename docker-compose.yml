@@ -1,61 +1,6 @@
 version: '3.8'
 
 services:
-  consumer:
-    build: ./backend
-    container_name: kafka_consumer
-    restart: always
-    depends_on:
-      - kafka
-      - redis
-    environment:
-      KAFKA_BROKER_URL: kafka:9092
-    volumes:
-      - ./backend:/backend
-    command: >
-      sh -c "python consumers.py"
-  db:
-    image: postgres:15
-    container_name: postgres_db
-    restart: always
-    environment:
-      POSTGRES_DB: mydb
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7
-    container_name: redis_cache
-    restart: always
-    ports:
-      - "6379:6379"
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    container_name: zookeeper
-    restart: always
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-    ports:
-      - "2181:2181"
-
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    container_name: kafka_broker
-    restart: always
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
   backend:
     build: ./backend
     container_name: django_backend
@@ -68,26 +13,23 @@ services:
       DATABASE_URL: postgres://myuser:mypassword@db:5432/mydb
       REDIS_URL: redis://redis:6379
       KAFKA_BROKER_URL: kafka:9092
-    ports:
-      - "8000:8000"
     volumes:
       - ./backend:/app
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
+             daphne -b 0.0.0.0 -p 8000 backend.asgi:application"
 
   frontend:
     build: ./frontend
     container_name: react_frontend
     restart: always
-    ports:
-      - "5173:5173"
     depends_on:
       - backend
 
   nginx:
     image: nginx:alpine
+    container_name: nginx_proxy
     ports:
       - "80:80"
     volumes:
@@ -96,6 +38,37 @@ services:
       - frontend
       - backend
 
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:alpine
+    container_name: redis_cache
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka_broker
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
 
 volumes:
   postgres_data:

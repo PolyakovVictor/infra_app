@@ -3,7 +3,7 @@ import { Post } from '../features/postsSlice';
 
 
 const api = axios.create({
-  baseURL: 'http://localhost/api',
+  baseURL: 'http://localhost',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -94,10 +94,11 @@ api.interceptors.response.use(
 // API methods
 export const loginUser = async (username: string, password: string) => {
   try {
-    const response = await api.post<{ access: string; refresh: string }>('/token/', { 
+    const response = await api.post<{ access: string; refresh: string }>('/api/token/', { 
       username, 
       password 
     });
+    console.log('RESPONST: ', response)
     const { access, refresh } = response;
     localStorage.setItem('accessToken', access);
     localStorage.setItem('refreshToken', refresh);
@@ -110,7 +111,7 @@ export const loginUser = async (username: string, password: string) => {
 
 export const fetchPosts = async () => {
   try {
-    const response = await api.get<Post[]>('/posts/');
+    const response = await api.get<Post[]>('/api/posts/');
     return response.data;
   } catch (error) {
     console.error('Fetch posts error:', error);
@@ -120,7 +121,7 @@ export const fetchPosts = async () => {
 
 export const createPost = async (content: string) => {
   try {
-    const response = await api.post<Post>('/posts/', { content });
+    const response = await api.post<Post>('/api/posts/', { content });
     return response.data;
   } catch (error) {
     console.error('Create post error:', error);
@@ -130,7 +131,7 @@ export const createPost = async (content: string) => {
 
 export const fetchNotifications = async () => {
   try {
-    const response = await api.get<any>('/notifications/');
+    const response = await api.get<any>('/api/notifications/');
     return response.data;
   } catch (error) {
     console.error('Fetch notifications error:', error);
@@ -143,20 +144,23 @@ export const connectWebSocket = (onMessage: (data: any) => void) => {
   if (!accessToken) {
     throw new Error('No access token available');
   }
-  
+
   const ws = new WebSocket(`ws://localhost/api/ws/notifications/?token=${accessToken}`);
+  
+  ws.onopen = () => console.log('WebSocket connected');
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     onMessage(data);
   };
   ws.onclose = () => console.log('WebSocket closed');
   ws.onerror = (error) => console.error('WebSocket error:', error);
+  
   return ws;
 };
 
 export const followToUser = async (post: Post) => {
   try {
-    const response = await api.post('/follow/', { user_id: post.user });
+    const response = await api.post('/api/follow/', { user_id: post.user });
     return response.data;
   } catch (error) {
     console.log('Following error:', error);

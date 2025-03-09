@@ -2,14 +2,14 @@ from kafka import KafkaConsumer
 import json
 import os
 import django
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
-# Настройка Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')  # Убедитесь, что backend.settings — правильный путь
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 django.setup()
 
-# Абсолютный импорт моделей
-from core.models import Notification  # Импорт вашей модели Notification
-from django.contrib.auth.models import User   # User из Django
+from core.models import Notification
+from django.contrib.auth.models import User
 
 
 def consume_notifications():
@@ -22,15 +22,33 @@ def consume_notifications():
         value_deserializer=lambda x: json.loads(x.decode('utf-8'))
     )
 
+    channel_layer = get_channel_layer()
+
     print("Starting notification consumer...")
     for message in consumer:
-        data = message.value
-        user = User.objects.get(id=data['user_id'])
-        Notification.objects.create(
-            user=user,
-            message=data['message']
-        )
-        print(f"Created notification for {user.username}: {data['message']}")
+        try:
+            data = message.value
+            user_id = data['user_id']
+            message_text = data['message']
+
+            user = User.objects.get(id=user_id)
+            notification = Notification.objects.create(user=user, message=message_text)
+            print(f"Created notification for {user.username}: {message_text}")
+
+            group_name = f'user_{user_id}'
+            async_to_sync(channel_layer.group_send)(
+                group_name,
+                {
+                    'type': 'send_notification',
+                    'message': message_text
+                }
+            )
+            print(f"Sent WebSocket notification to group {group_name}")
+
+        except User.DoesNotExist:
+            print(f"User with id {user_id} not found")
+        except Exception as e:
+            print(f"Error processing message: {e}")
 
 
 if __name__ == "__main__":
