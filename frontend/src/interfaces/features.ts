@@ -1,5 +1,17 @@
-import { Post } from '../features/postsSlice';
+export interface PostProps {
+    id: number;
+    content: string;
+    user: string;
+    createdAt: string;
+}
 
 export interface PostCardProps {
-    post: Post;
+    post: PostProps;
+}
+
+
+export interface NotificationProps {
+    id: number;
+    message: string;
+    created_at: string;
 }

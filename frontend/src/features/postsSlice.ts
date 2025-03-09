@@ -1,14 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { PostProps } from '../interfaces/features';
 
-export interface Post {
-  id: number;
-  content: string;
-  user: string;
-  createdAt: string;
-}
 
 interface PostsState {
-  posts: Post[];
+  posts: PostProps[];
 }
 
 const initialState: PostsState = {
@@ -19,10 +14,10 @@ const postsSlice = createSlice({
   name: 'posts',
   initialState,
   reducers: {
-    setPosts: (state, action: PayloadAction<Post[]>) => {
+    setPosts: (state, action: PayloadAction<PostProps[]>) => {
       state.posts = action.payload;
     },
-    addPost: (state, action: PayloadAction<Post>) => {
+    addPost: (state, action: PayloadAction<PostProps>) => {
       state.posts.unshift(action.payload);
     },
   },

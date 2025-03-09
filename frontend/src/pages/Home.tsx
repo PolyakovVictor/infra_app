@@ -41,9 +41,9 @@ const Home = () => {
 
     const ws = connectWebSocket((data) => {
       dispatch(addNotification({
-        id: Date.now(),
+        id: data.id,
         message: data.message,
-        created_at: new Date().toISOString(),
+        created_at: data.created_at,
       }));
     });
 
