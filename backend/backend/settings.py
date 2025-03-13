@@ -191,12 +191,14 @@ USE_I18N = True
 
 USE_TZ = True
 
+FORCE_SCRIPT_NAME = '/api'
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# STATIC_URL = '/static/'
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -224,7 +226,7 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': '/app/debug.log',
+            'filename': os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'debug.log'),
             'formatter': 'verbose',
         },
     },
@@ -241,3 +243,13 @@ LOGGING = {
         },
     },
 }
+
+
+STATIC_URL = '/static/'
+
+STATIC_ROOT = '/app/static/'
+
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
