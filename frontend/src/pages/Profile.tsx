@@ -14,8 +14,8 @@ const UserProfile = () => {
   const dispatch = useDispatch();
   const posts = useSelector((state: RootState) => state.posts.posts);
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
-  const currentUser = useSelector((state: RootState) => state.auth.user); // Получаем ID текущего пользователя
-  const [loading, setLoading] = useState(true);
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const [loading, setLoading] = useState(true);PostForm
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfileProps | null>(null);
   const { user } = useParams<{ user: string }>();
@@ -79,10 +79,12 @@ const UserProfile = () => {
     }
   };
 
+  console.log('##### my user ', currentUser, userProfile, userProfile?.user === currentUser)
+
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
 
-  const isOwnProfile = userProfile?.username === currentUser;
+  const isOwnProfile = userProfile?.user === currentUser;
 
   return (
     <div className="max-w-4xl mx-auto p-4 grid grid-cols-3 gap-6">
@@ -106,7 +108,7 @@ const UserProfile = () => {
                 />
               )}
               <div className="flex-1">
-                <h1 className="text-2xl font-bold">{userProfile.username}</h1>
+                <h1 className="text-2xl font-bold">{userProfile.user}</h1>
                 {isEditing ? (
                   <textarea
                     value={bioInput}

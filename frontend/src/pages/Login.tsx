@@ -14,6 +14,7 @@ const Login = () => {
       setError(null);
       const response = await loginUser(username, password);
       const { access, refresh } = response;
+      console.log(username)
       dispatch(login({ user: username, accessToken: access, refreshToken: refresh }));
     } catch (error: any) {
       setError('Login failed. Please check your credentials.');

@@ -19,7 +19,7 @@ export interface NotificationProps {
 
 export interface UserProfileProps {
     id: string;
-    username: string;
+    user: string;
     bio?: string;
     avatar?: string;
     created_at: string;

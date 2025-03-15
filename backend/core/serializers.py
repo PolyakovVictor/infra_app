@@ -7,13 +7,13 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'user', 'content', 'created_at']
+        fields = ["id", "user", "content", "created_at"]
 
 
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ['id', 'message', 'created_at']
+        fields = ["id", "message", "created_at"]
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -22,4 +22,4 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = '__all__'
+        fields = "__all__"

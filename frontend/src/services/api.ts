@@ -181,7 +181,7 @@ export const fetchUserProfile = async (user: string) => {
 
 export const fetchUserPosts = async (user: string) => {
   try {
-    const response = await api.get('/api/user_posts/', {params: { user }});
+    const response = await api.get('/api/user-posts/', {params: { user }});
     return response.data;
   } catch (error) {
     console.log('Get User Profile error:', error);
@@ -199,5 +199,16 @@ export const updateUserProfile = async (data: { bio?: string; avatar?: string })
     throw error;
   }
 };
+
+
+export const fetchCurrentUser = async () => {
+  try{
+    const response = await api.get('/api/current-user/')
+    return response.data;
+  } catch (error) {
+    console.log('Fail to get current', error)
+    throw error;
+  }
+}
 
 export default api;

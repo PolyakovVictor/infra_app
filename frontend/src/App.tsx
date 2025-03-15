@@ -2,32 +2,35 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, logout } from './features/authSlice';
 import { RootState } from './store/store';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // Добавляем роутинг
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import UserProfile from './pages/Profile'; // Импортируем страницу профиля
+import UserProfile from './pages/Profile';
+import { fetchCurrentUser } from './services/api';
 
 function App() {
   const dispatch = useDispatch();
   const { accessToken, refreshToken } = useSelector((state: RootState) => state.auth);
+  const currentUser = useSelector((state: RootState) => state.auth.user);
 
   useEffect(() => {
-    const storedAccessToken = localStorage.getItem('accessToken');
-    const storedRefreshToken = localStorage.getItem('refreshToken');
-
-    const validateToken = async () => {
-      if (storedAccessToken && storedRefreshToken) {
+    const restoreSession = async () => {
+      if (accessToken && !currentUser) {
         try {
-          dispatch(login({ user: 'user', accessToken: storedAccessToken, refreshToken: storedRefreshToken }));
-        } catch (error) {
-          console.error('Invalid token, logging out:', error);
-          dispatch(logout());
+          const userData = await fetchCurrentUser();
+          dispatch(login({
+            user: userData.username,
+            accessToken: accessToken,
+            refreshToken: refreshToken || '',
+          }));
+        } catch (err) {
+          console.error('Failed to restore session', err);
         }
       }
     };
 
-    validateToken();
-  }, [dispatch]);
+    restoreSession();
+  }, [dispatch, currentUser]);
 
   const isAuthenticated = !!accessToken && !!refreshToken;
 
