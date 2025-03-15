@@ -12,16 +12,22 @@ class Post(models.Model):
 
 
 class Follow(models.Model):
-    follower = models.ForeignKey(User, related_name='following', on_delete=models.CASCADE)
-    following = models.ForeignKey(User, related_name='followers', on_delete=models.CASCADE)
+    follower = models.ForeignKey(
+        User, related_name="following", on_delete=models.CASCADE
+    )
+    following = models.ForeignKey(
+        User, related_name="followers", on_delete=models.CASCADE
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('follower', 'following')
+        unique_together = ("follower", "following")
 
 
 class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="notifications"
+    )
     message = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
@@ -31,9 +37,9 @@ class Notification(models.Model):
 
 
 class UserProfile(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='profile')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="profile")
     bio = models.TextField()
-    avatar = models.ImageField(upload_to='images/avatar', verbose_name='User pfp')
+    avatar = models.ImageField(upload_to="images/avatar", verbose_name="User pfp")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
