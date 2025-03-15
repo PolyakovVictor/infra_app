@@ -1,14 +1,19 @@
 import { useState } from 'react';
-import { PostCardProps } from '../interfaces/features'
+import { PostCardProps } from '../interfaces/features';
 import { followToUser } from '../services/api';
-
+import { useNavigate } from 'react-router-dom'; // Добавляем роутинг
 
 const PostCard = ({ post }: PostCardProps) => {
   const [followed, setFollowed] = useState(false);
+  const navigate = useNavigate(); // Хук для перехода
 
   const handleFollow = async () => {
     await followToUser(post);
     setFollowed(true);
+  };
+
+  const handleUserClick = () => {
+    navigate(`/profile/${post.user}`); // Переход на страницу профиля по userId
   };
 
   return (
@@ -17,7 +22,12 @@ const PostCard = ({ post }: PostCardProps) => {
         <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
           {post.user[0].toUpperCase()}
         </div>
-        <p className="font-bold ml-3">{post.user}</p>
+        <p
+          className="font-bold ml-3 text-blue-600 cursor-pointer hover:underline"
+          onClick={handleUserClick} // Клик по имени ведёт в профиль
+        >
+          {post.user}
+        </p>
         <button
           onClick={handleFollow}
           disabled={followed}

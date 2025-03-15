@@ -168,4 +168,36 @@ export const followToUser = async (post: Post) => {
   }
 };
 
+export const fetchUserProfile = async (user: string) => {
+  try {
+    const response = await api.get('/api/profile/', {params: { user }});
+    return response.data;
+  } catch (error) {
+    console.log('Get User Profile error:', error);
+    throw error;
+  }
+};
+
+
+export const fetchUserPosts = async (user: string) => {
+  try {
+    const response = await api.get('/api/user_posts/', {params: { user }});
+    return response.data;
+  } catch (error) {
+    console.log('Get User Profile error:', error);
+    throw error;
+  }
+};
+
+
+export const updateUserProfile = async (data: { bio?: string; avatar?: string }) => {
+  try {
+    const response = await api.patch('/api/profile/', data);
+    return response.data;
+  } catch (error) {
+    console.log('Update User Profile error:', error);
+    throw error;
+  }
+};
+
 export default api;

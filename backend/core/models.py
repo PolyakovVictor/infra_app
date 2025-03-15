@@ -28,3 +28,13 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.user.username}: {self.message}"
+
+
+class UserProfile(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='profile')
+    bio = models.TextField()
+    avatar = models.ImageField(upload_to='images/avatar', verbose_name='User pfp')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.user.username

@@ -2,8 +2,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
-from .models import Follow, Post, Notification
-from .serializers import PostSerializer, NotificationSerializer
+from .models import Follow, Post, Notification, UserProfile
+from .serializers import PostSerializer, NotificationSerializer, UserProfileSerializer
 from kafka import KafkaProducer
 import json
 import logging
@@ -126,3 +126,37 @@ class FollowView(APIView):
         except Exception as e:
             logger.error(f"Error during follow operation or Kafka send: {str(e)}", exc_info=True)
             return Response({"error": "Failed to follow user"}, status=500)
+
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        username = request.query_params.get('user', None)
+        logger.info(f"Retrieving user profile for {username}")
+        try:
+            print('###### test username:', username)
+            profile = UserProfile.objects.filter(user__username=username).first()
+            print('###### test user profile:', profile)
+            serializer = UserProfileSerializer(profile)
+            print('###### test user serializer:', serializer, serializer.data)
+            return Response(serializer.data)
+        except Exception:
+            logger.error("Error retrieving user profile", exc_info=True)
+            return Response({"error": "Failed to retrieve user profile"}, status=500)
+
+
+class UserPostsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        username = request.query_params.get('user', None)
+        logger.info(f"Retrieving list of posts for user by id {username}")
+        try:
+            posts = Post.objects.filter(user__username=username)
+            serializer = PostSerializer(posts, many=True)
+            logger.debug(f"Found {len(posts)} posts for serialization")
+            return Response(serializer.data)
+        except Exception:
+            logger.error("Error retrieving posts by user id", exc_info=True)
+            return Response({"error": "Failed to retrieve posts by user id"}, status=500)

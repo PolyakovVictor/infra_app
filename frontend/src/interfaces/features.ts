@@ -15,3 +15,12 @@ export interface NotificationProps {
     message: string;
     created_at: string;
 }
+
+
+export interface UserProfileProps {
+    id: string;
+    username: string;
+    bio?: string;
+    avatar?: string;
+    created_at: string;
+  }

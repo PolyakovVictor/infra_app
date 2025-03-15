@@ -1,4 +1,3 @@
-// src/pages/Home.tsx
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store/store';
@@ -8,6 +7,7 @@ import { fetchPosts, connectWebSocket } from '../services/api';
 import PostForm from '../components/PostForm';
 import PostCard from '../components/PostCard';
 import Notifications from '../components/Notification';
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
   const dispatch = useDispatch();
@@ -15,6 +15,7 @@ const Home = () => {
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadData = async () => {
@@ -38,7 +39,6 @@ const Home = () => {
 
     loadData();
 
-
     const ws = connectWebSocket((data) => {
       dispatch(addNotification({
         id: data.id,
@@ -46,7 +46,6 @@ const Home = () => {
         created_at: data.created_at,
       }));
     });
-
 
     return () => {
       ws.close();
@@ -56,6 +55,10 @@ const Home = () => {
   useEffect(() => {
     console.log('USEEFFECT test : ', posts);
   }, [posts]);
+
+  const handleUserClick = (userId: string) => {
+    navigate(`/profile/${userId}`); // Переход на страницу профиля
+  };
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
@@ -68,7 +71,11 @@ const Home = () => {
         <div className="space-y-4 mt-6">
           {posts && posts.length > 0 ? (
             posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard
+                key={post.id}
+                post={post}
+                onUserClick={() => handleUserClick(post.userId)} // Передаём ID пользователя
+              />
             ))
           ) : (
             <p className="text-gray-500">No posts yet.</p>
