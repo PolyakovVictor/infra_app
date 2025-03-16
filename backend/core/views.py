@@ -156,11 +156,8 @@ class UserProfileView(APIView):
         username = request.query_params.get("user", None)
         logger.info(f"Retrieving user profile for {username}")
         try:
-            print("###### test username:", username)
             profile = UserProfile.objects.filter(user__username=username).first()
-            print("###### test user profile:", profile)
             serializer = UserProfileSerializer(profile)
-            print("###### test user serializer:", serializer, serializer.data)
             return Response(serializer.data)
         except Exception:
             logger.error("Error retrieving user profile", exc_info=True)

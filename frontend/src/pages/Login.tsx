@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { login } from '../features/authSlice';
 import { loginUser } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
@@ -16,6 +18,7 @@ const Login = () => {
       const { access, refresh } = response;
       console.log(username)
       dispatch(login({ user: username, accessToken: access, refreshToken: refresh }));
+      navigate(`/`);
     } catch (error: any) {
       setError('Login failed. Please check your credentials.');
       console.error('Login failed', error);

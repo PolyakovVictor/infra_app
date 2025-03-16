@@ -56,8 +56,8 @@ const Home = () => {
     console.log('USEEFFECT test : ', posts);
   }, [posts]);
 
-  const handleUserClick = (userId: string) => {
-    navigate(`/profile/${userId}`); // Переход на страницу профиля
+  const handleUserClick = (user: string) => {
+    navigate(`/profile/${user}`);
   };
 
   if (loading) return <p>Loading...</p>;
@@ -74,7 +74,7 @@ const Home = () => {
               <PostCard
                 key={post.id}
                 post={post}
-                onUserClick={() => handleUserClick(post.userId)} // Передаём ID пользователя
+                onUserClick={() => handleUserClick(post.user)} // Передаём ID пользователя
               />
             ))
           ) : (
