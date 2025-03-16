@@ -1,95 +1,78 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
 from django.contrib.auth.models import User
-from .models import Follow, Post, Notification, UserProfile
-from .serializers import PostSerializer, NotificationSerializer, UserProfileSerializer
-from kafka import KafkaProducer
-import json
+from django.db import IntegrityError
+from .models import Follow, Post, Notification, UserProfile, Like, Comment
+from .serializers import (
+    PostSerializer,
+    NotificationSerializer,
+    UserProfileSerializer,
+    LikeSerializer,
+    CommentSerializer,
+)
+from .utils.kafka_producer import producer
 import logging
-
 
 logger = logging.getLogger("core.views")
 
 
-class PostListView(APIView):
+# Базовый класс для отправки событий в Kafka
+def send_kafka_event(topic, data):
+    try:
+        producer.send(topic, data)
+        logger.debug(f"Event sent to Kafka topic '{topic}': {data}")
+    except Exception as e:
+        logger.error(
+            f"Failed to send event to Kafka topic '{topic}': {str(e)}", exc_info=True
+        )
+
+
+class PostListView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = PostSerializer
 
-    def get(self, request):
-        logger.info(f"Retrieving list of posts for user {request.user.username}")
+    def get_queryset(self):
+        logger.info(f"Retrieving posts for user {self.request.user.username}")
+        following_ids = self.request.user.following.values_list("following", flat=True)
+        return Post.objects.filter(user__in=following_ids).order_by("-created_at")
+
+    def perform_create(self, serializer):
+        logger.info(f"Creating a new post by user {self.request.user.username}")
         try:
-            posts = Post.objects.filter(
-                user__in=request.user.following.values("following")
+            post = serializer.save(user=self.request.user)
+            logger.debug(f"Post saved: ID={post.id}")
+
+            # Отправка в Kafka
+            send_kafka_event("new_posts", serializer.data)
+
+            # Уведомления для подписчиков
+            followers = Follow.objects.filter(following=self.request.user).values_list(
+                "follower", flat=True
             )
-            serializer = PostSerializer(posts, many=True)
-            logger.debug(f"Found {len(posts)} posts for serialization")
-            return Response(serializer.data)
+            for follower_id in followers:
+                notification_data = {
+                    "user_id": follower_id,
+                    "message": f"{self.request.user.username} published a new post!",
+                    "post_id": post.id,
+                }
+                send_kafka_event("notifications", notification_data)
         except Exception as e:
-            logger.error(f"Error retrieving posts: {str(e)}", exc_info=True)
-            return Response({"error": "Failed to retrieve posts"}, status=500)
-
-    def post(self, request):
-        logger.info(f"Creating a new post by user {request.user.username}")
-        serializer = PostSerializer(data=request.data)
-
-        if serializer.is_valid():
-            try:
-                post = serializer.save(user=request.user)
-                logger.debug(f"Post successfully saved: ID={post.id}")
-
-                # Initialize Kafka Producer
-                producer = KafkaProducer(bootstrap_servers="kafka:9092")
-                logger.debug("Kafka Producer initialized")
-
-                # Send post to new_posts topic
-                producer.send("new_posts", json.dumps(serializer.data).encode("utf-8"))
-                logger.info(f"Post sent to 'new_posts' topic: ID={post.id}")
-
-                # Send notifications to followers
-                followers = Follow.objects.filter(following=request.user).values_list(
-                    "follower", flat=True
-                )
-                logger.debug(
-                    f"Found {len(followers)} followers for notifications: {list(followers)}"
-                )
-
-                for follower_id in followers:
-                    notification_data = {
-                        "user_id": follower_id,
-                        "message": f"{request.user.username} published a new post!",
-                        "post_id": post.id,
-                    }
-                    producer.send(
-                        "notifications", json.dumps(notification_data).encode("utf-8")
-                    )
-                    logger.debug(f"Notification sent to user ID={follower_id}")
-
-                return Response(serializer.data, status=201)
-            except Exception as e:
-                logger.error(
-                    f"Error creating post or sending to Kafka: {str(e)}", exc_info=True
-                )
-                return Response({"error": "Failed to create post"}, status=500)
-        else:
-            logger.warning(f"Invalid data for post: {serializer.errors}")
-            return Response(serializer.errors, status=400)
+            logger.error(f"Error creating post: {str(e)}", exc_info=True)
+            raise
 
 
-class NotificationListView(APIView):
+class NotificationListView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
 
-    def get(self, request):
-        logger.info(f"Retrieving notifications for user {request.user.username}")
-        try:
-            notifications = Notification.objects.filter(user=request.user)
-            logger.debug(
-                f"Found {notifications.count()} notifications for user {request.user.username}"
-            )
-            serializer = NotificationSerializer(notifications, many=True)
-            return Response(serializer.data)
-        except Exception as e:
-            logger.error(f"Error retrieving notifications: {str(e)}", exc_info=True)
-            return Response({"error": "Failed to retrieve notifications"}, status=500)
+    def get_queryset(self):
+        logger.info(f"Retrieving notifications for user {self.request.user.username}")
+        return Notification.objects.filter(user=self.request.user).order_by(
+            "-created_at"
+        )
 
 
 class FollowView(APIView):
@@ -97,17 +80,17 @@ class FollowView(APIView):
 
     def post(self, request):
         logger.info(f"User {request.user.username} attempting to follow another user")
-        username = request.data.get("user_id")
+        username = request.data.get(
+            "username"
+        )  # Изменено на username для консистентности
 
         try:
             following = User.objects.get(username=username)
-            logger.debug(f"Found user to follow: {following.username}")
         except User.DoesNotExist:
             logger.warning(f"User with username {username} not found")
-            return Response({"error": "User not found"}, status=404)
-        except Exception as e:
-            logger.error(f"Error fetching user {username}: {str(e)}", exc_info=True)
-            return Response({"error": "Internal server error"}, status=500)
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
 
         try:
             follow, created = Follow.objects.get_or_create(
@@ -115,76 +98,198 @@ class FollowView(APIView):
             )
             if created:
                 logger.info(
-                    f"New follow relationship created: {request.user.username} -> {following.username}"
+                    f"New follow: {request.user.username} -> {following.username}"
                 )
-
-                # Create notification
-                Notification.objects.create(
-                    user=following, message=f"{request.user.username} has followed you!"
-                )
-                logger.debug(f"Notification created for user {following.username}")
-
-                # Send to Kafka
-                producer = KafkaProducer(bootstrap_servers="kafka:9092")
-                logger.debug("Kafka Producer initialized")
                 notification_data = {
                     "user_id": following.id,
                     "message": f"{request.user.username} has followed you!",
                 }
-                producer.send(
-                    "notifications", json.dumps(notification_data).encode("utf-8")
+                send_kafka_event("notifications", notification_data)
+                Notification.objects.create(
+                    user=following, message=notification_data["message"]
                 )
-                logger.info(f"Notification sent to Kafka for user ID={following.id}")
             else:
                 logger.debug(
-                    f"Follow relationship already exists: {request.user.username} -> {following.username}"
+                    f"Already following: {request.user.username} -> {following.username}"
                 )
-
-            return Response({"status": "followed"}, status=201)
-
-        except Exception as e:
-            logger.error(
-                f"Error during follow operation or Kafka send: {str(e)}", exc_info=True
+            return Response({"status": "followed"}, status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            logger.warning(
+                f"Duplicate follow attempt: {request.user.username} -> {following.username}"
             )
-            return Response({"error": "Failed to follow user"}, status=500)
-
-
-class UserProfileView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        username = request.query_params.get("user", None)
-        logger.info(f"Retrieving user profile for {username}")
-        try:
-            profile = UserProfile.objects.filter(user__username=username).first()
-            serializer = UserProfileSerializer(profile)
-            return Response(serializer.data)
-        except Exception:
-            logger.error("Error retrieving user profile", exc_info=True)
-            return Response({"error": "Failed to retrieve user profile"}, status=500)
-
-
-class UserPostsView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        username = request.query_params.get("user", None)
-        logger.info(f"Retrieving list of posts for user by id {username}")
-        try:
-            posts = Post.objects.filter(user__username=username)
-            serializer = PostSerializer(posts, many=True)
-            logger.debug(f"Found {len(posts)} posts for serialization")
-            return Response(serializer.data)
-        except Exception:
-            logger.error("Error retrieving posts by user id", exc_info=True)
             return Response(
-                {"error": "Failed to retrieve posts by user id"}, status=500
+                {"error": "Already following"}, status=status.HTTP_400_BAD_REQUEST
             )
+        except Exception as e:
+            logger.error(f"Error during follow: {str(e)}", exc_info=True)
+            return Response(
+                {"error": "Failed to follow user"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class UserProfileView(RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserProfileSerializer
+
+    def get_object(self):
+        username = self.request.query_params.get("username")
+        logger.info(f"Retrieving profile for {username}")
+        try:
+            return UserProfile.objects.get(user__username=username)
+        except UserProfile.DoesNotExist:
+            logger.warning(f"Profile for {username} not found")
+            return Response(
+                {"error": "Profile not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class UserPostsView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PostSerializer
+
+    def get_queryset(self):
+        username = self.request.query_params.get("username")
+        logger.info(f"Retrieving posts for user {username}")
+        return Post.objects.filter(user__username=username).order_by("-created_at")
 
 
 class GetCurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, requrest):
-        username = requrest.user.username
-        return Response({"username": username})
+    def get(self, request):
+        logger.info(f"Retrieving current user: {request.user.username}")
+        return Response({"username": request.user.username})
+
+
+# Новые эндпоинты для лайков, репостов и комментариев
+class LikePostView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, post_id):
+        logger.info(f"User {request.user.username} attempting to like post {post_id}")
+        try:
+            post = Post.objects.get(id=post_id)
+            like, created = Like.objects.get_or_create(user=request.user, post=post)
+            if created:
+                logger.info(f"Post {post_id} liked by {request.user.username}")
+                notification_data = {
+                    "user_id": post.user.id,
+                    "message": f"{request.user.username} liked your post!",
+                    "post_id": post.id,
+                }
+                send_kafka_event("notifications", notification_data)
+                Notification.objects.create(
+                    user=post.user,
+                    message=notification_data["message"],
+                    related_post=post,
+                )
+                send_kafka_event(
+                    "user_interactions",
+                    {
+                        "event_type": "like",
+                        "user_id": request.user.id,
+                        "post_id": post.id,
+                    },
+                )
+                return Response({"status": "liked"}, status=status.HTTP_201_CREATED)
+            else:
+                like.delete()
+                logger.info(f"Post {post_id} unliked by {request.user.username}")
+                return Response({"status": "unliked"}, status=status.HTTP_200_OK)
+        except Post.DoesNotExist:
+            logger.warning(f"Post {post_id} not found")
+            return Response(
+                {"error": "Post not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error liking post {post_id}: {str(e)}", exc_info=True)
+            return Response(
+                {"error": "Failed to like post"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class RepostView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, post_id):
+        logger.info(f"User {request.user.username} attempting to repost post {post_id}")
+        try:
+            original_post = Post.objects.get(id=post_id)
+            repost = Post.objects.create(
+                user=request.user,
+                content=original_post.content,
+                original_post=original_post,
+                is_repost=True,
+            )
+            logger.info(
+                f"Post {post_id} reposted by {request.user.username} as {repost.id}"
+            )
+            notification_data = {
+                "user_id": original_post.user.id,
+                "message": f"{request.user.username} reposted your post!",
+                "post_id": original_post.id,
+            }
+            send_kafka_event("notifications", notification_data)
+            Notification.objects.create(
+                user=original_post.user,
+                message=notification_data["message"],
+                related_post=original_post,
+            )
+            send_kafka_event(
+                "user_interactions",
+                {
+                    "event_type": "repost",
+                    "user_id": request.user.id,
+                    "post_id": repost.id,
+                },
+            )
+            return Response(PostSerializer(repost).data, status=status.HTTP_201_CREATED)
+        except Post.DoesNotExist:
+            logger.warning(f"Post {post_id} not found")
+            return Response(
+                {"error": "Post not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error reposting post {post_id}: {str(e)}", exc_info=True)
+            return Response(
+                {"error": "Failed to repost"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class CommentView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        post_id = self.kwargs["post_id"]
+        return Comment.objects.filter(post_id=post_id).order_by("-created_at")
+
+    def perform_create(self, serializer):
+        post_id = self.kwargs["post_id"]
+        logger.info(f"User {self.request.user.username} commenting on post {post_id}")
+        try:
+            post = Post.objects.get(id=post_id)
+            comment = serializer.save(user=self.request.user, post=post)
+            notification_data = {
+                "user_id": post.user.id,
+                "message": f"{self.request.user.username} commented on your post!",
+                "post_id": post.id,
+            }
+            send_kafka_event("notifications", notification_data)
+            Notification.objects.create(
+                user=post.user, message=notification_data["message"], related_post=post
+            )
+            send_kafka_event(
+                "user_interactions",
+                {
+                    "event_type": "comment",
+                    "user_id": self.request.user.id,
+                    "post_id": post.id,
+                },
+            )
+        except Post.DoesNotExist:
+            logger.warning(f"Post {post_id} not found")
+            raise
