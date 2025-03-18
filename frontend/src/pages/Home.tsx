@@ -74,7 +74,7 @@ const Home = () => {
               <PostCard
                 key={post.id}
                 post={post}
-                onUserClick={() => handleUserClick(post.user)} // Передаём ID пользователя
+                onUserClick={() => handleUserClick(post.user)}
               />
             ))
           ) : (

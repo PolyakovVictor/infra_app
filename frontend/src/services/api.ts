@@ -158,9 +158,9 @@ export const connectWebSocket = (onMessage: (data: any) => void) => {
   return ws;
 };
 
-export const followToUser = async (post: Post) => {
+export const followToUser = async (user: Post) => {
   try {
-    const response = await api.post('/api/follow/', { user_id: post.user });
+    const response = await api.post('/api/follow/', { user: user });
     return response.data;
   } catch (error) {
     console.log('Following error:', error);

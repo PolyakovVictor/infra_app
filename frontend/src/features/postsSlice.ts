@@ -2,7 +2,6 @@ import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { PostProps } from '../interfaces/features';
 import { likePost, repostPost, fetchPosts } from '../services/api';
 
-// Интерфейс состояния постов
 interface PostsState {
   posts: PostProps[];
   loading: boolean;
@@ -48,7 +47,7 @@ export const repostPostThunk = createAsyncThunk(
   }
 );
 
-// Слайс
+
 const postsSlice = createSlice({
   name: 'posts',
   initialState,
@@ -95,8 +94,7 @@ const postsSlice = createSlice({
       if (post) {
         post.reposts_count += 1;
       }
-      // Опционально: можно добавить новый репост в список постов
-      // state.posts.unshift(action.payload.repost);
+
     });
     builder.addCase(repostPostThunk.rejected, (state, action) => {
       state.error = action.payload as string;

@@ -21,7 +21,6 @@ from django.http import Http404
 logger = logging.getLogger("core.views")
 
 
-# Базовый класс для отправки событий в Kafka
 def send_kafka_event(topic, data):
     try:
         producer.send(topic, data)
@@ -47,10 +46,8 @@ class PostListView(ListCreateAPIView):
             post = serializer.save(user=self.request.user)
             logger.debug(f"Post saved: ID={post.id}")
 
-            # Отправка в Kafka
             send_kafka_event("new_posts", serializer.data)
 
-            # Уведомления для подписчиков
             followers = Follow.objects.filter(following=self.request.user).values_list(
                 "follower", flat=True
             )
@@ -82,14 +79,12 @@ class FollowView(APIView):
 
     def post(self, request):
         logger.info(f"User {request.user.username} attempting to follow another user")
-        username = request.data.get(
-            "username"
-        )  # Изменено на username для консистентности
+        user = request.data.get("user")
 
         try:
-            following = User.objects.get(username=username)
+            following = User.objects.get(username=user)
         except User.DoesNotExist:
-            logger.warning(f"User with username {username} not found")
+            logger.warning(f"User with username {user} not found")
             return Response(
                 {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
             )
@@ -135,12 +130,12 @@ class UserProfileView(RetrieveAPIView):
     serializer_class = UserProfileSerializer
 
     def get_object(self):
-        username = self.request.query_params.get("username")
-        logger.info(f"Retrieving profile for {username}")
+        user = self.request.query_params.get("user")
+        logger.info(f"Retrieving profile for {user}")
         try:
-            return UserProfile.objects.get(user__username=username)
+            return UserProfile.objects.get(user__username=user)
         except UserProfile.DoesNotExist:
-            logger.warning(f"Profile for {username} not found")
+            logger.warning(f"Profile for {user} not found")
             raise Http404("Profile not found")
 
 
@@ -149,9 +144,9 @@ class UserPostsView(ListCreateAPIView):
     serializer_class = PostSerializer
 
     def get_queryset(self):
-        username = self.request.query_params.get("username")
-        logger.info(f"Retrieving posts for user {username}")
-        return Post.objects.filter(user__username=username).order_by("-created_at")
+        user = self.request.query_params.get("user")
+        logger.info(f"Retrieving posts for user {user}")
+        return Post.objects.filter(user__username=user).order_by("-created_at")
 
 
 class GetCurrentUserView(APIView):
@@ -162,7 +157,6 @@ class GetCurrentUserView(APIView):
         return Response({"username": request.user.username})
 
 
-# Новые эндпоинты для лайков, репостов и комментариев
 class LikePostView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -272,7 +266,7 @@ class CommentView(ListCreateAPIView):
         logger.info(f"User {self.request.user.username} commenting on post {post_id}")
         try:
             post = Post.objects.get(id=post_id)
-            comment = serializer.save(user=self.request.Лфuser, post=post)
+            comment = serializer.save(user=self.request.user, post=post)
             notification_data = {
                 "user_id": post.user.id,
                 "message": f"{self.request.user.username} commented on your post!",

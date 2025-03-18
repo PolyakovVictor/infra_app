@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { PostProps } from '../interfaces/features';
 import { useDispatch, useSelector } from 'react-redux';
 import { followToUser } from '../services/api';
-import { likePostThunk, repostPostThunk } from '../features/postsSlice'; // Путь к вашему слайсу
+import { likePostThunk, repostPostThunk } from '../features/postsSlice';
 import { RootState } from '../store/store';
 import { useNavigate } from 'react-router-dom';
 
