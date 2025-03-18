@@ -211,4 +211,24 @@ export const fetchCurrentUser = async () => {
   }
 }
 
+export const likePost = async (postId: number) => {
+  try {
+    const response = await api.post(`/api/posts/${postId}/like/`, {});
+    return response.data;
+  } catch (error) {
+    console.log('Fail to get current', error)
+    throw error;
+  }
+};
+
+export const repostPost = async (postId: number) => {
+  try {
+    const response = await api.post(`/api/posts/${postId}/repost/`, {});
+    return response.data;
+  } catch (error) {
+    console.log('Fail to get current', error)
+    throw error;
+  }
+};
+
 export default api;

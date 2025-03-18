@@ -1,8 +1,12 @@
 export interface PostProps {
     id: number;
-    content: string;
     user: string;
-    createdAt: string;
+    content: string;
+    created_at: string;
+    is_liked: boolean;
+    likes_count: number;
+    reposts_count: number;
+    comments_count: number;
 }
 
 export interface PostCardProps {

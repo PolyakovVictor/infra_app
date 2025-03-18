@@ -15,6 +15,8 @@ from .serializers import (
 )
 from .utils.kafka_producer import producer
 import logging
+from django.http import Http404
+
 
 logger = logging.getLogger("core.views")
 
@@ -139,9 +141,7 @@ class UserProfileView(RetrieveAPIView):
             return UserProfile.objects.get(user__username=username)
         except UserProfile.DoesNotExist:
             logger.warning(f"Profile for {username} not found")
-            return Response(
-                {"error": "Profile not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise Http404("Profile not found")
 
 
 class UserPostsView(ListCreateAPIView):
@@ -272,7 +272,7 @@ class CommentView(ListCreateAPIView):
         logger.info(f"User {self.request.user.username} commenting on post {post_id}")
         try:
             post = Post.objects.get(id=post_id)
-            comment = serializer.save(user=self.request.user, post=post)
+            comment = serializer.save(user=self.request.Лфuser, post=post)
             notification_data = {
                 "user_id": post.user.id,
                 "message": f"{self.request.user.username} commented on your post!",
