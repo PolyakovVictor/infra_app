@@ -33,18 +33,18 @@ const PostForm = () => {
   };
 
   return (
-    <div className="bg-white p-4 rounded shadow">
-      {error && <p className="text-red-500 mb-2">{error}</p>}
+    <div className="bg-white dark:bg-gray-800 p-4 rounded shadow">
+      {error && <p className="text-red-500 dark:text-red-400 mb-2">{error}</p>}
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="What's buzzing?"
-        className="w-full p-2 border rounded resize-none"
+        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded resize-none bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
         maxLength={280}
       />
       <button
         onClick={handleSubmit}
-        className="mt-2 p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        className="mt-2 p-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700"
       >
         Post
       </button>

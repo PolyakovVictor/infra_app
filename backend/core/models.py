@@ -85,8 +85,10 @@ class Notification(models.Model):
 
 class UserProfile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="profile")
-    bio = models.TextField()
-    avatar = models.ImageField(upload_to="images/avatar", verbose_name="User pfp")
+    bio = models.TextField(blank=True, null=True)
+    avatar = models.ImageField(
+        upload_to="images/avatar", verbose_name="User pfp", blank=True, null=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

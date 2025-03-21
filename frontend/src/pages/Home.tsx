@@ -40,11 +40,13 @@ const Home = () => {
     loadData();
 
     const ws = connectWebSocket((data) => {
-      dispatch(addNotification({
-        id: data.id,
-        message: data.message,
-        created_at: data.created_at,
-      }));
+      dispatch(
+        addNotification({
+          id: data.id,
+          message: data.message,
+          created_at: data.created_at,
+        })
+      );
     });
 
     return () => {
@@ -60,13 +62,17 @@ const Home = () => {
     navigate(`/profile/${user}`);
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (loading)
+    return <p className="text-gray-800 dark:text-gray-200">Loading...</p>;
+  if (error)
+    return <p className="text-red-500 dark:text-red-400">{error}</p>;
 
   return (
     <div className="max-w-4xl mx-auto p-4 grid grid-cols-3 gap-6">
       <div className="col-span-2">
-        <h1 className="text-3xl font-bold mb-6">Reyo</h1>
+        <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">
+          Reyo
+        </h1>
         <PostForm />
         <div className="space-y-4 mt-6">
           {posts && posts.length > 0 ? (
@@ -78,12 +84,14 @@ const Home = () => {
               />
             ))
           ) : (
-            <p className="text-gray-500">No posts yet.</p>
+            <p className="text-gray-500 dark:text-gray-400">No posts yet.</p>
           )}
         </div>
       </div>
       <div className="col-span-1">
-        <h2 className="text-xl font-semibold mb-4">Notifications</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+          Notifications
+        </h2>
         <Notifications />
       </div>
     </div>
