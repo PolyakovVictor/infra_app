@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView
 from django.contrib.auth.models import User
 from django.db import IntegrityError
 from .models import Follow, Post, Notification, UserProfile, Like, Comment
@@ -125,18 +125,33 @@ class FollowView(APIView):
             )
 
 
-class UserProfileView(RetrieveAPIView):
+class UserProfileView(RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UserProfileSerializer
 
     def get_object(self):
+        print("########### GET METHOD UserProfileView")
         user = self.request.query_params.get("user")
+        if not user:
+            user = self.request.user.username
         logger.info(f"Retrieving profile for {user}")
         try:
             return UserProfile.objects.get(user__username=user)
         except UserProfile.DoesNotExist:
             logger.warning(f"Profile for {user} not found")
             raise Http404("Profile not found")
+        except Exception as e:
+            logger.error(f"GET method UserProfileView error: {e}")
+            raise
+
+    def patch(self, request, *args, **kwargs):
+        print("########### PATCH METHOD UserProfileView")
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserPostsView(ListCreateAPIView):

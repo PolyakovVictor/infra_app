@@ -26,7 +26,7 @@ const UserProfile = () => {
   const { user } = useParams<{ user: string }>();
   const [isEditing, setIsEditing] = useState(false);
   const [bioInput, setBioInput] = useState('');
-  const [avatarInput, setAvatarInput] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null); // Change to File type
 
   useEffect(() => {
     const loadData = async () => {
@@ -40,7 +40,6 @@ const UserProfile = () => {
         const profileResponse = await fetchUserProfile(user!);
         setUserProfile(profileResponse);
         setBioInput(profileResponse.bio || '');
-        setAvatarInput(profileResponse.avatar || '');
         const postsResponse = await fetchUserPosts(profileResponse.user);
         dispatch(setPosts(postsResponse));
       } catch (err) {
@@ -54,36 +53,41 @@ const UserProfile = () => {
     loadData();
 
     // Uncomment if WebSocket is needed
-    // const ws = connectWebSocket((data) => {
-    //   dispatch(addNotification({
-    //     id: data.id,
-    //     message: data.message,
-    //     created_at: data.created_at,
-    //   }));
-    // });
-    //
-    // return () => {
-    //   ws.close();
-    // };
+    const ws = connectWebSocket((data) => {
+      dispatch(addNotification({
+        id: data.id,
+        message: data.message,
+        created_at: data.created_at,
+      }));
+    });
+    
+    return () => {
+      ws.close();
+    };
   }, [dispatch, accessToken, user]);
 
   const handleEditToggle = () => {
     setIsEditing(!isEditing);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setAvatarFile(e.target.files[0]); // Store the selected file
+    }
+  };
+
   const handleSave = async () => {
     if (!userProfile) return;
     try {
-      const updatedProfile = await updateUserProfile({ bio: bioInput, avatar: avatarInput });
+      const updatedProfile = await updateUserProfile({ bio: bioInput, avatar: avatarFile });
       setUserProfile(updatedProfile);
       setIsEditing(false);
+      setAvatarFile(null); // Reset file input after save
     } catch (err) {
       setError('Failed to update profile');
       console.error(err);
     }
   };
-
-  console.log('##### my user ', currentUser, userProfile, userProfile?.user === currentUser);
 
   if (loading)
     return <p className="text-gray-800 dark:text-gray-200">Loading...</p>;
@@ -100,11 +104,10 @@ const UserProfile = () => {
             <div className="flex items-center space-x-4">
               {isEditing ? (
                 <input
-                  type="text"
-                  value={avatarInput}
-                  onChange={(e) => setAvatarInput(e.target.value)}
-                  placeholder="Enter avatar URL"
-                  className="w-16 h-16 rounded-full object-cover border border-gray-300 dark:border-gray-600 p-1 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                  type="file"
+                  accept="image/*" // Restrict to images
+                  onChange={handleFileChange}
+                  className="w-full text-gray-800 dark:text-gray-200"
                 />
               ) : (
                 userProfile.avatar ? (

@@ -54,7 +54,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
-    avatar = serializers.ImageField(use_url=True)
+    avatar = serializers.ImageField(use_url=True, allow_null=True)
 
     class Meta:
         model = UserProfile

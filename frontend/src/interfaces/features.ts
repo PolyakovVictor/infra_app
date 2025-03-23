@@ -25,6 +25,6 @@ export interface UserProfileProps {
     id: string;
     user: string;
     bio?: string;
-    avatar?: string;
+    avatar?: File;
     created_at: string;
   }

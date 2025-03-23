@@ -190,12 +190,27 @@ export const fetchUserPosts = async (user: string) => {
 };
 
 
-export const updateUserProfile = async (data: { bio?: string; avatar?: string }) => {
+export const updateUserProfile = async (data: { bio?: string; avatar?: File | null }) => {
   try {
-    const response = await api.patch('/api/profile/', data);
+    const formData = new FormData();
+
+    if (data.bio) {
+      formData.append("bio", data.bio);
+    }
+
+    if (data.avatar) {
+      formData.append("avatar", data.avatar);
+    }
+
+    const response = await api.patch('/api/profile/', formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
     return response.data;
   } catch (error) {
-    console.log('Update User Profile error:', error);
+    console.log("Update User Profile error:", error);
     throw error;
   }
 };
