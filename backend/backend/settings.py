@@ -213,13 +213,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 logger_DEBUG = os.getenv("DEBUG", "False") == "True"
 
 
+LOG_DIR = "./logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {module} {message}",
+            "format": "[{asctime}] {levelname} [{module}:{lineno}] {message}",
             "style": "{",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },
     "handlers": {
@@ -231,22 +235,20 @@ LOGGING = {
         "file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "debug.log"
-            ),
+            "filename": os.path.join(LOG_DIR, "server.log"),
             "formatter": "verbose",
         },
     },
     "loggers": {
-        "myapp": {
+        "django": {
             "handlers": ["console", "file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "django": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": True,
+        "": {  # Корневой логгер для других частей проекта
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
         },
     },
 }
