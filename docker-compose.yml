@@ -18,11 +18,13 @@ services:
       - media:/app/media
     ports:
       - "8000:8000"
+    working_dir: /app  # Add this line
     command: >
       sh -c "python manage.py makemigrations &&
-             python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             daphne -b 0.0.0.0 -p 8000 backend.asgi:application"
+            python manage.py migrate &&
+            python manage.py collectstatic --noinput &&
+            daphne -b 0.0.0.0 -p 8000 backend.asgi:application &
+            python backend/notifications/kafka_consumer.py"
 
   frontend:
     build: ./frontend
@@ -69,20 +71,20 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       - zookeeper
 
-  kafka2:
-    image: confluentinc/cp-kafka:latest
-    container_name: kafka_broker_2
-    environment:
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
-    depends_on:
-      - zookeeper
+  # kafka2:
+  #   image: confluentinc/cp-kafka:latest
+  #   container_name: kafka_broker_2
+  #   environment:
+  #     KAFKA_BROKER_ID: 2
+  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092
+  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  #   depends_on:
+  #     - zookeeper
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
