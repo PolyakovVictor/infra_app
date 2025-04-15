@@ -13,7 +13,6 @@ from .serializers import (
     LikeSerializer,
     CommentSerializer,
 )
-from .utils.kafka_producer import producer
 import logging
 from django.http import Http404
 
@@ -21,15 +20,7 @@ from django.http import Http404
 logger = logging.getLogger("core.views")
 
 
-def send_kafka_event(topic, data):
-    try:
-        producer.send(topic, data)
-        logger.debug(f"Event sent to Kafka topic '{topic}': {data}")
-    except Exception as e:
-        logger.error(
-            f"Failed to send event to Kafka topic '{topic}': {str(e)}", exc_info=True
-        )
-
+from .kafka_producer import send_kafka_event
 
 class PostListView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
@@ -61,6 +52,7 @@ class PostListView(ListCreateAPIView):
         except Exception as e:
             logger.error(f"Error creating post: {str(e)}", exc_info=True)
             raise
+
 
 
 class NotificationListView(ListCreateAPIView):
@@ -101,7 +93,6 @@ class FollowView(APIView):
                     "user_id": following.id,
                     "message": f"{request.user.username} has followed you!",
                 }
-                send_kafka_event("notifications", notification_data)
                 Notification.objects.create(
                     user=following, message=notification_data["message"]
                 )
@@ -187,19 +178,10 @@ class LikePostView(APIView):
                     "message": f"{request.user.username} liked your post!",
                     "post_id": post.id,
                 }
-                send_kafka_event("notifications", notification_data)
                 Notification.objects.create(
                     user=post.user,
                     message=notification_data["message"],
                     related_post=post,
-                )
-                send_kafka_event(
-                    "user_interactions",
-                    {
-                        "event_type": "like",
-                        "user_id": request.user.id,
-                        "post_id": post.id,
-                    },
                 )
                 return Response({"status": "liked"}, status=status.HTTP_201_CREATED)
             else:
@@ -240,19 +222,10 @@ class RepostView(APIView):
                 "message": f"{request.user.username} reposted your post!",
                 "post_id": original_post.id,
             }
-            send_kafka_event("notifications", notification_data)
             Notification.objects.create(
                 user=original_post.user,
                 message=notification_data["message"],
                 related_post=original_post,
-            )
-            send_kafka_event(
-                "user_interactions",
-                {
-                    "event_type": "repost",
-                    "user_id": request.user.id,
-                    "post_id": repost.id,
-                },
             )
             return Response(PostSerializer(repost).data, status=status.HTTP_201_CREATED)
         except Post.DoesNotExist:
@@ -287,17 +260,8 @@ class CommentView(ListCreateAPIView):
                 "message": f"{self.request.user.username} commented on your post!",
                 "post_id": post.id,
             }
-            send_kafka_event("notifications", notification_data)
             Notification.objects.create(
                 user=post.user, message=notification_data["message"], related_post=post
-            )
-            send_kafka_event(
-                "user_interactions",
-                {
-                    "event_type": "comment",
-                    "user_id": self.request.user.id,
-                    "post_id": post.id,
-                },
             )
         except Post.DoesNotExist:
             logger.warning(f"Post {post_id} not found")
