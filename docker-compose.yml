@@ -10,8 +10,9 @@ services:
     environment:
       DATABASE_URL: postgres://myuser:mypassword@db:5432/mydb
       REDIS_URL: redis://redis:6379
-      KAFKA_BROKER_URL: kafka:9092,kafka2:9092
+      KAFKA_BROKER_URL: kafka:9092
       PYTHONUNBUFFERED: 1
+      DJANGO_SETTINGS_MODULE: backend.settings
     volumes:
       - ./backend:/app
       - static_data:/app/static
@@ -23,8 +24,24 @@ services:
       sh -c "python manage.py makemigrations &&
             python manage.py migrate &&
             python manage.py collectstatic --noinput &&
-            daphne -b 0.0.0.0 -p 8000 backend.asgi:application &
-            python backend/notifications/kafka_consumer.py"
+            daphne -b 0.0.0.0 -p 8000 backend.asgi:application"
+  
+  kafka_consumer:
+    build: ./backend
+    container_name: kafka_consumer
+    restart: always
+    depends_on:
+      - backend
+      - kafka
+    environment:
+      DATABASE_URL: postgres://myuser:mypassword@db:5432/mydb
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKER_URL: kafka:9092
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    command: python backend/notifications/kafka_consumer.py
 
   frontend:
     build: ./frontend

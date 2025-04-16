@@ -129,15 +129,15 @@ export const createPost = async (content: string) => {
   }
 };
 
-export const fetchNotifications = async () => {
-  try {
-    const response = await api.get<any>('/api/notifications/');
-    return response.data;
-  } catch (error) {
-    console.error('Fetch notifications error:', error);
-    throw error;
-  }
-};
+// export const fetchNotifications = async () => {
+//   try {
+//     const response = await api.get<any>('/api/notifications/');
+//     return response.data;
+//   } catch (error) {
+//     console.error('Fetch notifications error:', error);
+//     throw error;
+//   }
+// };
 
 export const connectWebSocket = (onMessage: (data: any) => void) => {
   const accessToken = localStorage.getItem('accessToken');
