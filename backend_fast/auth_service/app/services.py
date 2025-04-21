@@ -1,5 +1,8 @@
 import os
+
+from sqlalchemy import select
 import models
+import schemas
 
 from datetime import datetime, timedelta
 from typing import Annotated, Optional
@@ -8,6 +11,8 @@ from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import AsyncSession
+from db import get_db
 
 
 load_dotenv()
@@ -24,13 +29,15 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-def get_user(db, username: str):
-    if username in db:
-        user_dict = db[username]
-        return models.UserInDB(**user_dict)
+async def get_user(db: AsyncSession, username: str):
+    result = await db.execute(
+        select(models.User).where(models.User.username == username)
+    )
+    user = result.scalar_one_or_none()
+    return user
 
-def authenticate_user(fake_db, username: str, password: str):
-    user = get_user(fake_db, username)
+async def authenticate_user(db: AsyncSession, username: str, password: str):
+    user = await get_user(db, username)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -47,7 +54,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -58,10 +68,10 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-        token_data = models.TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = get_user(fake_users_db, username=token_data.username)
+
+    user = await get_user(db, username)
     if user is None:
         raise credentials_exception
     return user

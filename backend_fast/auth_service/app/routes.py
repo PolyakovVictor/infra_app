@@ -1,4 +1,6 @@
 import os
+import schemas
+import models
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from typing import Annotated
@@ -6,7 +8,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from services import authenticate_user, create_access_token, get_current_active_user
 from dotenv import load_dotenv
-import schemas
+from sqlalchemy.ext.asyncio import AsyncSession
+from db import get_db
 
 
 load_dotenv()
@@ -28,8 +31,9 @@ fake_users_db = {
 
 # Routes
 @router.post("/token", response_model=schemas.Token)
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+async def login_for_access_token(db: AsyncSession = Depends(get_db), form_data: Annotated[OAuth2PasswordRequestForm, Depends()] = None):
+    user = await authenticate_user(db, form_data.username, form_data.password)
+    print(f'\n ----------------- \n  test USER : {user}')
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -42,10 +46,15 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+# router.py
 @router.get("/users/me/", response_model=schemas.User)
-async def read_users_me(current_user: Annotated[schemas.User, Depends(get_current_active_user)]):
+async def read_users_me(
+    current_user: Annotated[models.User, Depends(get_current_active_user)]
+):
     return current_user
 
 @router.get("/protected-resource/")
-async def get_protected_resource(current_user: Annotated[schemas.User, Depends(get_current_active_user)]):
+async def get_protected_resource(
+    current_user: Annotated[models.User, Depends(get_current_active_user)]
+):
     return {"message": f"Hello {current_user.username}, this is a protected resource"}

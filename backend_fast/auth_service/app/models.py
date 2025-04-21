@@ -16,7 +16,6 @@ class User(Base):
     email = Column(String(100), unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     
-    # Связи
     posts = relationship("Post", back_populates="user", cascade="all, delete-orphan")
     likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
@@ -128,7 +127,7 @@ class UserProfile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     bio = Column(Text, nullable=True)
-    avatar_url = Column(String, nullable=True)  # В FastAPI обычно хранят URL или путь к файлу
+    avatar_url = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="profile")
