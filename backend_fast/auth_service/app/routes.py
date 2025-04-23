@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
-from services import authenticate_user, create_access_token, get_current_active_user
+from services import authenticate_user, create_access_token, get_current_active_user, get_user, get_password_hash
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db
@@ -16,18 +16,6 @@ load_dotenv()
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES', 60))
 
 router = APIRouter()
-
-
-# Mock user database
-fake_users_db = {
-    "johndoe": {
-        "username": "johndoe",
-        "full_name": "John Doe",
-        "email": "johndoe@example.com",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",  # "secret"
-        "disabled": False,
-    }
-}
 
 # Routes
 @router.post("/token", response_model=schemas.Token)
@@ -45,6 +33,26 @@ async def login_for_access_token(db: AsyncSession = Depends(get_db), form_data: 
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/register", response_model=schemas.User)
+async def register_user(db: AsyncSession = Depends(get_db), form_data: Annotated[OAuth2PasswordRequestForm, Depends()] = None):
+    existing_user = get_user(db, form_data.username)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='User with provided username already exists'
+        )
+    hashed_password = get_password_hash(form_data.password)
+
+    new_user = models.User(
+        username=form_data.username,
+        hashed_password=hashed_password,
+    )
+
+    db.add(new_user)
+    await db.commit()
+    await db.refresh()
+    
 
 # router.py
 @router.get("/users/me/", response_model=schemas.User)
