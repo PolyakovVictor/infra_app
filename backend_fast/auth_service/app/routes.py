@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
-from services import authenticate_user, create_access_token, get_current_active_user, get_user, get_password_hash
+from services import authenticate_user, create_access_token, get_current_active_user, get_user, get_password_hash, get_user_by_email
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db
@@ -34,24 +34,46 @@ async def login_for_access_token(db: AsyncSession = Depends(get_db), form_data: 
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.post("/register", response_model=schemas.User)
-async def register_user(db: AsyncSession = Depends(get_db), form_data: Annotated[OAuth2PasswordRequestForm, Depends()] = None):
-    existing_user = get_user(db, form_data.username)
+# First, create a proper registration schema that includes email
+# Then update your endpoint
+@router.post("/register", response_model=schemas.UserInDB, status_code=status.HTTP_201_CREATED)
+async def register_user(
+    user_data: schemas.UserRegistration,
+    db: AsyncSession = Depends(get_db)
+):
+    # Check if username already exists
+    existing_user = await get_user(db, user_data.username)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail='User with provided username already exists'
         )
-    hashed_password = get_password_hash(form_data.password)
+    
+    existing_user_with_email = await get_user_by_email(db, user_data.email)
+    if existing_user_with_email:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='User with provided email already exists'
+        )
+    
+    
+    # Hash the password
+    hashed_password = get_password_hash(user_data.password)
 
+    # Create new user
     new_user = models.User(
-        username=form_data.username,
+        username=user_data.username,
+        email=user_data.email,
         hashed_password=hashed_password,
     )
-
+    
+    # Add user to database
     db.add(new_user)
     await db.commit()
-    await db.refresh()
+    await db.refresh(new_user)
+    
+    # Return user data according to the response_model
+    return new_user  # This should match your schemas.UserInDB structure
     
 
 # router.py

@@ -36,6 +36,13 @@ async def get_user(db: AsyncSession, username: str):
     user = result.scalar_one_or_none()
     return user
 
+async def get_user_by_email(db: AsyncSession, email: str):
+    result = await db.execute(
+        select(models.User).where(models.User.email == email)
+    )
+    user = result.scalar_one_or_none()
+    return user
+
 async def authenticate_user(db: AsyncSession, username: str, password: str):
     user = await get_user(db, username)
     if not user:
