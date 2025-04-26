@@ -15,13 +15,13 @@ from db import get_db
 load_dotenv()
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES', 60))
 
-router = APIRouter()
+router = APIRouter(prefix='/auth')
 
 # Routes
 @router.post("/token", response_model=schemas.Token)
-async def login_for_access_token(db: AsyncSession = Depends(get_db), form_data: Annotated[OAuth2PasswordRequestForm, Depends()] = None):
+async def login_for_access_token(db: AsyncSession = Depends(get_db), form_data: schemas.UserCredentials = None):
     user = await authenticate_user(db, form_data.username, form_data.password)
-    print(f'\n ----------------- \n  test USER : {user}')
+    print(f'\n ----------------- \n  login user from db : {user}')
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -36,9 +36,9 @@ async def login_for_access_token(db: AsyncSession = Depends(get_db), form_data: 
 
 # First, create a proper registration schema that includes email
 # Then update your endpoint
-@router.post("/register", response_model=schemas.UserInDB, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
 async def register_user(
-    user_data: schemas.UserRegistration,
+    user_data: schemas.UserCredentials,
     db: AsyncSession = Depends(get_db)
 ):
     # Check if username already exists

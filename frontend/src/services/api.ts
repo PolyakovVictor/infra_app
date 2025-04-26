@@ -70,7 +70,7 @@ api.interceptors.response.use(
           return Promise.reject(new Error('No refresh token available'));
         }
 
-        const { data } = await api.post<{ access: string }>('/token/refresh/', {
+        const { data } = await api.post<{ access: string }>('api/auth/token/refresh/', {
           refresh: refreshToken,
         });
 
@@ -94,7 +94,7 @@ api.interceptors.response.use(
 // API methods
 export const loginUser = async (username: string, password: string) => {
   try {
-    const response = await api.post<{ access: string; refresh: string }>('/api/token/', { 
+    const response = await api.post<{ access: string; refresh: string }>('/api/auth/token', { 
       username, 
       password 
     });
@@ -108,6 +108,24 @@ export const loginUser = async (username: string, password: string) => {
     throw error;
   }
 };
+
+export const registerUser = async (username: string, password: string, email: string) => {
+  try {
+    const response = await api.post<{ access: string; refresh: string }>('/api/auth/register', { 
+      username, 
+      password,
+      email
+    });
+    console.log('register response: ', response)
+    const { access, refresh } = response;
+    localStorage.setItem('accessToken', access);
+    localStorage.setItem('refreshToken', refresh);
+    return response.data;
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+}
 
 export const fetchPosts = async () => {
   try {
