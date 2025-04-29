@@ -3,7 +3,8 @@ from typing import Annotated, Optional
 
 
 class Token(BaseModel):
-    access_token: str
+    access: str
+    refresh: str
     token_type: str
 
 class TokenData(BaseModel):

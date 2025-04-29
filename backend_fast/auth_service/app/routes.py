@@ -14,8 +14,9 @@ from db import get_db
 
 load_dotenv()
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES', 60))
+REFRESH_TOKEN_EXPIRE_MINUTES = int(os.getenv('REFRESH_TOKEN_EXPIRE_MINUTES', 10080))
 
-router = APIRouter(prefix='/auth')
+router = APIRouter()
 
 # Routes
 @router.post("/token", response_model=schemas.Token)
@@ -29,10 +30,15 @@ async def login_for_access_token(db: AsyncSession = Depends(get_db), form_data: 
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    refresh_token = create_access_token(
+        data={"sub": user.username}, expires_delta=refresh_token_expires
+    )
+    print(f'access_token: {access_token[:10]}, refresh_token: {refresh_token[:10]} {access_token == refresh_token}')
+    return {"access": access_token, "refresh": refresh_token, "token_type": "bearer"}
 
 # First, create a proper registration schema that includes email
 # Then update your endpoint

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { login } from '../features/authSlice';
 import { loginUser, registerUser } from '../services/api';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 
 const AuthForm = () => {
   const [username, setUsername] = useState('');
@@ -12,7 +12,7 @@ const AuthForm = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLogin, setIsLogin] = useState(true);
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
@@ -21,7 +21,7 @@ const AuthForm = () => {
       const { access, refresh } = response;
       console.log(username);
       dispatch(login({ user: username, accessToken: access, refreshToken: refresh }));
-      navigate(`/`);
+      // navigate(`/`);
     } catch (error: any) {
       setError('Login failed. Please check your credentials.');
       console.error('Login failed', error);
