@@ -4,7 +4,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from jose import JWTError, jwt
 from app.core.config import settings
 import re
+import logging
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("middleware_auth")
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -36,6 +39,8 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             error_detail = "Invalid token"
             if isinstance(e, jwt.ExpiredSignatureError):
                 error_detail = "Token expired"
+
+            logger.error(str(e))
                 
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,

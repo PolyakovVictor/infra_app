@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     POST_SERVICE_URL: str
     NOTIFICATION_SERVICE_URL: str
     
-    SECRET_KEY: str
+    SECRET_KEY: str = os.getenv('SECRET_KEY')
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
